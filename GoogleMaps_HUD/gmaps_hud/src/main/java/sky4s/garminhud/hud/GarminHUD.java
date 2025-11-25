@@ -22,9 +22,9 @@ import sky4s.garminhud.eUnits;
  */
 
 public class GarminHUD extends HUDAdapter {
-    //===========================================================================================
+    // ===========================================================================================
     // 不與C++共用的部分
-    //===========================================================================================
+    // ===========================================================================================
     private static final String TAG = GarminHUD.class.getSimpleName();
     private static final boolean DEBUG = false;
 
@@ -36,10 +36,11 @@ public class GarminHUD extends HUDAdapter {
     private ConnectionCallback mConnectionCallback;
     private boolean mConnected = false;
     private boolean mSendResult = false;
-    //===========================================================================================
+    // ===========================================================================================
 
     public GarminHUD(Context context) {
-        if (DEBUG) Log.d(TAG, "Creating GarmingHUD instance");
+        if (DEBUG)
+            Log.d(TAG, "Creating GarmingHUD instance");
         mContext = context;
         mBt = new BluetoothSPP(mContext);
         mBt.setBluetoothConnectionListener(mBluetoothConnectionListener);
@@ -80,9 +81,8 @@ public class GarminHUD extends HUDAdapter {
     public void registerConnectionCallback(ConnectionCallback callback) {
         mConnectionCallback = callback;
         if (mConnectionCallback != null) {
-            mConnectionCallback.onConnectionStateChange(mConnected ?
-                    ConnectionCallback.ConnectionState.CONNECTED :
-                    ConnectionCallback.ConnectionState.DISCONNECTED);
+            mConnectionCallback.onConnectionStateChange(mConnected ? ConnectionCallback.ConnectionState.CONNECTED
+                    : ConnectionCallback.ConnectionState.DISCONNECTED);
         }
     }
 
@@ -159,7 +159,7 @@ public class GarminHUD extends HUDAdapter {
             return false;
         }
         mUpdateCount++;
-        if (MainActivity.IGNORE_BT_DEVICE) {
+        if (MainActivity.isIgnoreBtDevice(mContext)) {
             return true;
         }
         byte[] packet = new byte[length];
@@ -168,8 +168,11 @@ public class GarminHUD extends HUDAdapter {
         }
 
         if (mBt.isServiceAvailable()) {
-            //judge service exist to avoid => app.akexorcist.bluetotohspp.library.BluetoothService.getState()' on a null object reference
-            if (DEBUG) Log.d(TAG, "sendPacket: sending packet over BT");
+            // judge service exist to avoid =>
+            // app.akexorcist.bluetotohspp.library.BluetoothService.getState()' on a null
+            // object reference
+            if (DEBUG)
+                Log.d(TAG, "sendPacket: sending packet over BT");
             mBt.send(packet, false);
         }
         return true;
@@ -204,7 +207,7 @@ public class GarminHUD extends HUDAdapter {
         for (char c : pBuf) {
             sendBuf[len++] = c;
             if (c == 0x10) {
-                //Escape LF
+                // Escape LF
                 sendBuf[len++] = 0x10;
                 stuffingCount++;
             }
@@ -225,19 +228,20 @@ public class GarminHUD extends HUDAdapter {
 
     @Override
     public void setTime(int nH, int nM, boolean bFlag, boolean bTraffic, boolean bColon, boolean bH) {
-        if (DEBUG) Log.d(TAG, "setTime: nH: " + nH +
-                ", nM: " + nM +
-                ", bFlag: " + bFlag +
-                ", bTraffic: " + bTraffic +
-                ", bColon: " + bColon +
-                ", bH: " + bH);
-        char[] arr = {(char) 0x05,
+        if (DEBUG)
+            Log.d(TAG, "setTime: nH: " + nH +
+                    ", nM: " + nM +
+                    ", bFlag: " + bFlag +
+                    ", bTraffic: " + bTraffic +
+                    ", bColon: " + bColon +
+                    ", bH: " + bH);
+        char[] arr = { (char) 0x05,
                 bTraffic ? (char) 0xff : (char) 0x00,
                 toDigit(nH / 10), toDigit(nH), // hour
                 bColon ? (char) 0xff : (char) 0x00, // :
-                toDigit(nM / 10), toDigit(nM), //minute
+                toDigit(nM / 10), toDigit(nM), // minute
                 bH ? (char) 0xff : (char) 0x00, // post-fix 'h'
-                bFlag ? (char) 0xff : (char) 0x00};
+                bFlag ? (char) 0xff : (char) 0x00 };
         sendToHud(arr);
     }
 
@@ -248,21 +252,21 @@ public class GarminHUD extends HUDAdapter {
 
         boolean noHour = 0 == nH;
         boolean minLessThen10 = noHour && nM < 10;
-        char[] arr = {(char) 0x05,
+        char[] arr = { (char) 0x05,
                 bTraffic ? (char) 0xff : (char) 0x00,
-                noHour ? (char) 0 : toDigit(nH / 10),// hour n_
+                noHour ? (char) 0 : toDigit(nH / 10), // hour n_
                 noHour ? (char) 0 : toDigit(nH), // hour _n
                 noHour ? (char) 0 : (char) 0xff, // :
-                minLessThen10 ? (char) 0 : toDigit(nM / 10), //minute n_
-                toDigit(nM), //minute _n
+                minLessThen10 ? (char) 0 : toDigit(nM / 10), // minute n_
+                toDigit(nM), // minute _n
                 bH ? (char) 0xff : (char) 0x00, // post-fix 'h'
-                bFlag ? (char) 0xff : (char) 0x00};
+                bFlag ? (char) 0xff : (char) 0x00 };
         sendToHud(arr);
     }
 
     @Override
     public void clearTime() {
-        char[] arr = {(char) 0x05,
+        char[] arr = { (char) 0x05,
                 0x00,
                 0, 0,
                 0x00,
@@ -277,11 +281,11 @@ public class GarminHUD extends HUDAdapter {
         int distance = (int) nDist;
         boolean hasDecimal = ((eUnits.Kilometres == unit) || (eUnits.Miles == unit)) && nDist < 10;
         if (hasDecimal) {
-            distance = (int) ( nDist * 10.0);
+            distance = (int) (nDist * 10.0);
         }
-        char[] arr = {(char) 0x03,
+        char[] arr = { (char) 0x03,
                 toDigit(distance / 1000), toDigit(distance / 100), toDigit(distance / 10),
-                hasDecimal ? (char) 0xff : (char) 0x00, toDigit(distance), (char) unit.value};
+                hasDecimal ? (char) 0xff : (char) 0x00, toDigit(distance), (char) unit.value };
 
         if (arr[1] == 0xa) {
             arr[1] = 0;
@@ -292,7 +296,7 @@ public class GarminHUD extends HUDAdapter {
                 }
             }
         }
-        if (hasDecimal && (  distance / 10) == 0) {
+        if (hasDecimal && (distance / 10) == 0) {
             // Show leding zero for decimals
             arr[3] = 0xa;
         }
@@ -302,7 +306,7 @@ public class GarminHUD extends HUDAdapter {
 
     @Override
     public void clearDistance() {
-        char[] arr = {(char) 0x03, 0x0, 0x0, 0x0, 0x00, 0, 0};
+        char[] arr = { (char) 0x03, 0x0, 0x0, 0x0, 0x00, 0, 0 };
         sendToHud(arr);
     }
 
@@ -322,8 +326,8 @@ public class GarminHUD extends HUDAdapter {
         final boolean bDecimal = false;
         final boolean bLeadingZero = false;
 
-        char[] arr = {(char) 0x03, a, b, c,
-                bDecimal ? (char) 0xff : (char) 0x00, d, (char) unit.value};
+        char[] arr = { (char) 0x03, a, b, c,
+                bDecimal ? (char) 0xff : (char) 0x00, d, (char) unit.value };
         if (!bLeadingZero) {
             if (arr[1] == 0xa) {
                 arr[1] = 0;
@@ -339,45 +343,45 @@ public class GarminHUD extends HUDAdapter {
     }
 
     /*
-    eOutType:
-    Off(0x00),
-    Lane(0x01),
-    LongerLane(0x02),
-    LeftRoundabout(0x04),
-    RightRoundabout(0x08),
-    ArrowOnly(0x80);
-
-    eOutAngle:
-    SharpRight(0x02),
-    Right(0x04),
-    EasyRight(0x08),
-    Straight(0x10),
-    EasyLeft(0x20),
-    Left(0x40),
-    SharpLeft(0x80),
-    LeftDown(0x81),
-    RightDown(0x82),
-    AsDirection(0x00);
+     * eOutType:
+     * Off(0x00),
+     * Lane(0x01),
+     * LongerLane(0x02),
+     * LeftRoundabout(0x04),
+     * RightRoundabout(0x08),
+     * ArrowOnly(0x80);
+     * 
+     * eOutAngle:
+     * SharpRight(0x02),
+     * Right(0x04),
+     * EasyRight(0x08),
+     * Straight(0x10),
+     * EasyLeft(0x20),
+     * Left(0x40),
+     * SharpLeft(0x80),
+     * LeftDown(0x81),
+     * RightDown(0x82),
+     * AsDirection(0x00);
      */
 
     /*
-    byte0:  header 0x01
-
-    byte1:  Line 箭頭長度, eOutAngle
-            0x00 Off
-            0x01 Lane
-            0x02 LongerLane
-            0x04 LeftRoundabout
-            0x08 RightRoundabout
-            0x10 LeftDown*
-            0x20 RightDown*
-            0x40 RightFlag
-            0x80 ArrowOnly
-
-    byte2:  When Roundabout, eOutAngle:nRoundaboutOut or eOutType:nType
-
-    byte3:  When not LeftDown/RightDown, 箭頭方向: eOutAngle
-    */
+     * byte0: header 0x01
+     * 
+     * byte1: Line 箭頭長度, eOutAngle
+     * 0x00 Off
+     * 0x01 Lane
+     * 0x02 LongerLane
+     * 0x04 LeftRoundabout
+     * 0x08 RightRoundabout
+     * 0x10 LeftDown*
+     * 0x20 RightDown*
+     * 0x40 RightFlag
+     * 0x80 ArrowOnly
+     * 
+     * byte2: When Roundabout, eOutAngle:nRoundaboutOut or eOutType:nType
+     * 
+     * byte3: When not LeftDown/RightDown, 箭頭方向: eOutAngle
+     */
 
     /**
      * @param nDir           箭頭
@@ -386,20 +390,23 @@ public class GarminHUD extends HUDAdapter {
      */
     @Override
     public void setDirection(final eOutAngle nDir, final eOutType nType, final eOutAngle nRoundaboutOut) {
-        if (DEBUG) Log.d(TAG, "setDirection: nDir: " + nDir +
-                ", nType: " + nType +
-                ", nRoundaboutOut: " + nRoundaboutOut);
-        char[] arr = {(char) 0x01,
-                (nDir == eOutAngle.LeftDown) ? (char) 0x10 : ((nDir == eOutAngle.RightDown) ? (char) 0x20 : (char) nType.value),
-                (nType == eOutType.RightRoundabout || nType == eOutType.LeftRoundabout) ?
-                        ((char) ((nRoundaboutOut == eOutAngle.AsDirection) ? nDir.value : nRoundaboutOut.value)) : (char) 0x00,
-                (nDir == eOutAngle.LeftDown || nDir == eOutAngle.RightDown) ? (char) 0x00 : (char) nDir.value};
+        if (DEBUG)
+            Log.d(TAG, "setDirection: nDir: " + nDir +
+                    ", nType: " + nType +
+                    ", nRoundaboutOut: " + nRoundaboutOut);
+        char[] arr = { (char) 0x01,
+                (nDir == eOutAngle.LeftDown) ? (char) 0x10
+                        : ((nDir == eOutAngle.RightDown) ? (char) 0x20 : (char) nType.value),
+                (nType == eOutType.RightRoundabout || nType == eOutType.LeftRoundabout)
+                        ? ((char) ((nRoundaboutOut == eOutAngle.AsDirection) ? nDir.value : nRoundaboutOut.value))
+                        : (char) 0x00,
+                (nDir == eOutAngle.LeftDown || nDir == eOutAngle.RightDown) ? (char) 0x00 : (char) nDir.value };
         sendToHud(arr);
     }
 
     @Override
     public void setLanes(char nArrow, char nOutline) {
-        char[] arr = {0x02, nOutline, nArrow};
+        char[] arr = { 0x02, nOutline, nArrow };
         sendToHud(arr);
     }
 
@@ -419,48 +426,50 @@ public class GarminHUD extends HUDAdapter {
         }
         onesDigit = toDigit(nSpeed);
 
-        char[] arr = {(char) 0x06,
+        char[] arr = { (char) 0x06,
                 (char) 0x00, (char) 0x00, (char) 0x00, bSlash ? (char) 0xff : (char) 0x00,
                 hundredsDigit, tensDigit, onesDigit, bSpeeding ? (char) 0xff : (char) 0x00,
-                bIcon ? (char) 0xff : (char) 0x00};
+                bIcon ? (char) 0xff : (char) 0x00 };
 
         sendToHud(arr);
     }
 
     @Override
     public void setSpeedWarning(int nSpeed, int nLimit, boolean bSpeeding, boolean bIcon, boolean bSlash) {
-        char[] arr = {(char) 0x06,
+        char[] arr = { (char) 0x06,
                 (char) ((nSpeed / 100) % 10), toDigit(nSpeed / 10), toDigit(nSpeed), bSlash ? (char) 0xff : (char) 0x00,
-                (char) ((nLimit / 100) % 10), toDigit(nLimit / 10), toDigit(nLimit), bSpeeding ? (char) 0xff : (char) 0x00,
-                bIcon ? (char) 0xff : (char) 0x00};
+                (char) ((nLimit / 100) % 10), toDigit(nLimit / 10), toDigit(nLimit),
+                bSpeeding ? (char) 0xff : (char) 0x00,
+                bIcon ? (char) 0xff : (char) 0x00 };
 
         sendToHud(arr);
     }
 
     @Override
     public void clearSpeedAndWarning() {
-        char[] arr = {(char) 0x06,
+        char[] arr = { (char) 0x06,
                 (char) 0x00, (char) 0x00, (char) 0x00, (char) 0x00,
                 (char) 0x00, (char) 0x00, (char) 0x00, (char) 0x00,
-                (char) 0x00};
+                (char) 0x00 };
         sendToHud(arr);
     }
 
     @Override
     public void setCameraIcon(boolean visible) {
-        char[] arr = {0x04, (char) (visible ? 1 : 0)};
+        char[] arr = { 0x04, (char) (visible ? 1 : 0) };
         sendToHud(arr);
     }
 
     @Override
     public void setGpsLabel(boolean visible) {
-        char[] arr = {0x07, (char) (visible ? 1 : 0)};
+        char[] arr = { 0x07, (char) (visible ? 1 : 0) };
         sendToHud(arr);
     }
 
     @Override
     public void setAutoBrightness() {
-        char[] autoBrightnessCommand = {0x10, 0x7B, 0x0E, 0x08, 0x00, 0x00, 0x00, 0x56, 0x15, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x10, 0x03};
+        char[] autoBrightnessCommand = { 0x10, 0x7B, 0x0E, 0x08, 0x00, 0x00, 0x00, 0x56, 0x15, 0x02, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x02, 0x10, 0x03 };
         mSendResult = sendPacket(autoBrightnessCommand, autoBrightnessCommand.length);
     }
 
@@ -491,7 +500,8 @@ public class GarminHUD extends HUDAdapter {
 
     @Override
     public void disconnect() {
-        if (DEBUG) Log.d(TAG, "disconnect()");
+        if (DEBUG)
+            Log.d(TAG, "disconnect()");
         mBt.stopAutoConnect();
         mBt.stopService();
     }
@@ -540,14 +550,16 @@ public class GarminHUD extends HUDAdapter {
     }
 
     private void startActivityForResult(Intent intent, int requestCode) {
-        // HACK: Convert mContext to MainActivity to handle outgoing startActivityForResult calls
+        // HACK: Convert mContext to MainActivity to handle outgoing
+        // startActivityForResult calls
         ((MainActivity) mContext).startActivityForResult(intent, requestCode);
     }
 
     private BluetoothSPP.BluetoothConnectionListener mBluetoothConnectionListener = new BluetoothSPP.BluetoothConnectionListener() {
         @Override
         public void onDeviceConnected(String name, String address) {
-            if (DEBUG) Log.d(TAG, "onDeviceConnected: name: " + name + ", address: " + address);
+            if (DEBUG)
+                Log.d(TAG, "onDeviceConnected: name: " + name + ", address: " + address);
             saveConnectedDevice();
             if (mConnectionCallback != null) {
                 mConnectionCallback.onConnectionStateChange(ConnectionCallback.ConnectionState.CONNECTED);
@@ -557,13 +569,15 @@ public class GarminHUD extends HUDAdapter {
 
         @Override
         public void onDeviceDisconnected() {
-            if (DEBUG) Log.d(TAG, "onDeviceDisconnected()");
+            if (DEBUG)
+                Log.d(TAG, "onDeviceDisconnected()");
             disconnectBluetooth(ConnectionCallback.ConnectionState.DISCONNECTED);
         }
 
         @Override
         public void onDeviceConnectionFailed() {
-            if (DEBUG) Log.d(TAG, "onDeviceConnectionFailed");
+            if (DEBUG)
+                Log.d(TAG, "onDeviceConnectionFailed");
             disconnectBluetooth(ConnectionCallback.ConnectionState.FAILED);
         }
 

@@ -1,8 +1,9 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 29
-    buildToolsVersion '29.0.3'
+    namespace 'app.akexorcist.bluetotohspp.library'
+    compileSdkVersion 35
+    buildToolsVersion '34.0.0'
 
     defaultConfig {
         versionCode Integer.parseInt(VERSION_CODE)
@@ -18,4 +19,4 @@ android {
     }
 }
 
-apply from: '../maven_push.gradle'
+// apply from: '../maven_push.gradle'

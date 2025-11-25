@@ -1,0 +1,131 @@
+diff --git a/gmaps_hud/src/main/java/sky4s/garminhud/app/MainActivity.java b/gmaps_hud/src/main/java/sky4s/garminhud/app/MainActivity.java
+index 1234567..abcdefg 100644
+--- a/gmaps_hud/src/main/java/sky4s/garminhud/app/MainActivity.java
++++ b/gmaps_hud/src/main/java/sky4s/garminhud/app/MainActivity.java
+@@ -15,6 +15,7 @@ import android.content.IntentFilter;
+ import android.content.ServiceConnection;
+ import android.content.SharedPreferences;
+ import android.content.pm.ApplicationInfo;
+ import android.content.pm.PackageManager;
++import android.net.Uri;
+ import android.graphics.Color;
+ import android.graphics.PixelFormat;
+ import android.hardware.display.DisplayManager;
+@@ -84,6 +85,7 @@ public class MainActivity extends AppCompatActivity {
+     private static final String ENABLED_NOTIFICATION_LISTENERS = "enabled_notification_listeners";
+     private static final String ACTION_NOTIFICATION_LISTENER_SETTINGS = "android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS";
+     private static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
++    private static final int MY_PERMISSIONS_REQUEST_ALL = 101;
+ 
+     //========================================
+     // UI for Page1Fragment
+@@ -494,6 +496,9 @@ public class MainActivity extends AppCompatActivity {
+         }.start();
+         mImageDetectListener = new ImageDetectListener(this);
+         // ========================================================================================
++
++        // Request all necessary runtime permissions at startup
++        requestAllPermissions();
+     }
+ 
+     @Override
+@@ -763,6 +768,85 @@ public class MainActivity extends AppCompatActivity {
+         mDebugTextView.append(msg + "\\n\\n");
+     }
+ 
++    /**
++     * Request all necessary runtime permissions at app startup
++     */
++    private void requestAllPermissions() {
++        java.util.List<String> permissionsToRequest = new java.util.ArrayList<>();
++
++        // Location permissions
++        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
++                != PackageManager.PERMISSION_GRANTED) {
++            permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION);
++        }
++        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
++                != PackageManager.PERMISSION_GRANTED) {
++            permissionsToRequest.add(Manifest.permission.ACCESS_COARSE_LOCATION);
++        }
++
++        // Background location permission (Android 10+)
++        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
++            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION)
++                    != PackageManager.PERMISSION_GRANTED) {
++                permissionsToRequest.add(Manifest.permission.ACCESS_BACKGROUND_LOCATION);
++            }
++        }
++
++        // Bluetooth permissions (Android 12+)
++        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
++            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
++                    != PackageManager.PERMISSION_GRANTED) {
++                permissionsToRequest.add(Manifest.permission.BLUETOOTH_CONNECT);
++            }
++            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
++                    != PackageManager.PERMISSION_GRANTED) {
++                permissionsToRequest.add(Manifest.permission.BLUETOOTH_SCAN);
++            }
++        }
++
++        // Notification permission (Android 13+)
++        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
++            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
++                    != PackageManager.PERMISSION_GRANTED) {
++                permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS);
++            }
++        }
++
++        // Request all permissions if any are missing
++        if (!permissionsToRequest.isEmpty()) {
++            String[] permissionsArray = permissionsToRequest.toArray(new String[0]);
++            ActivityCompat.requestPermissions(this, permissionsArray, MY_PERMISSIONS_REQUEST_ALL);
++        }
++    }
++
++    @Override
++    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
++        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
++
++        if (requestCode == MY_PERMISSIONS_REQUEST_ALL) {
++            boolean allGranted = true;
++            StringBuilder deniedPermissions = new StringBuilder();
++
++            for (int i = 0; i < permissions.length; i++) {
++                if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
++                    allGranted = false;
++                    deniedPermissions.append("\\n- ").append(permissions[i]);
++                }
++            }
++
++            if (!allGranted) {
++                // Some permissions were denied, show explanation
++                new AlertDialog.Builder(this)
++                        .setTitle("Permissions Required")
++                        .setMessage("This app requires the following permissions to function properly:" +
++                                deniedPermissions.toString() +
++                                "\\n\\nPlease grant these permissions in Settings.")
++                        .setPositiveButton("Open Settings", (dialog, which) -> {
++                            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
++                            Uri uri = Uri.fromParts("package", getPackageName(), null);
++                            intent.setData(uri);
++                            startActivity(intent);
++                        })
++                        .setNegativeButton("Cancel", null)
++                        .show();
++            }
++        } else if (requestCode == MY_PERMISSIONS_REQUEST_LOCATION) {
++            // Handle location permission result from checkLocationPermission method
++            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
++                // Permission granted, can proceed with location-based features
++                log("Location permission granted");
++            } else {
++                log("Location permission denied");
++            }
++        }
++    }
++
+     private class MsgReceiver extends BroadcastReceiver {
+         @Override
+         public void onReceive(Context context, Intent intent) {

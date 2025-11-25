@@ -37,6 +37,8 @@ public class NotificationCollectorMonitorService extends Service {
      * IllegalArgumentException is thrown if the tag.length() > 23.
      */
     private static final String TAG = "NCMS";
+    private Notification notification;
+    private NotificationManager mNotificationManager;
 
     @Override
     public void onCreate() {
@@ -45,7 +47,7 @@ public class NotificationCollectorMonitorService extends Service {
         ensureCollectorRunning();
 
         startNotification(null, null);
-//        startForeground(1, notification);
+        // startForeground(1, notification);
     }
 
     @Override
@@ -54,31 +56,22 @@ public class NotificationCollectorMonitorService extends Service {
         stopForeground(true);
     }
 
-    private Notification notification;
-    private NotificationManager mNotificationManager;
-
     private Notification getNormalNotification(String contentText, Bitmap icon) {
-        final Intent mainIntent = MainActivity.sMainIntent;
-        MainActivity.mNCMS = this;
-        int flags = PendingIntent.FLAG_CANCEL_CURRENT; // ONE_SHOT：PendingIntent只使用一次；CANCEL_CURRENT：PendingIntent執行前會先結束掉之前的；NO_CREATE：沿用先前的PendingIntent，不建立新的PendingIntent；UPDATE_CURRENT：更新先前PendingIntent所帶的額外資料，並繼續沿用
-        Context context = getApplicationContext();
-        if( null == context) {
-            return null;
-        }
-        final PendingIntent pendingMainIntent = PendingIntent.getActivity(context, 0, mainIntent, flags); // 取得PendingIntent
+        String channelID = "id";
+        Intent intent = new Intent(this, MainActivity.class);
+        PendingIntent pendingMainIntent = PendingIntent.getActivity(this, 0, intent,
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
 
-
-        final String channelID = "id";
-
-        NotificationCompat.Builder builder
-                = new NotificationCompat.Builder(this, channelID)
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, channelID)
                 .setSmallIcon(R.mipmap.ic_notification_foreground)
-                .setAutoCancel(false) // 設置通知被使用者點擊後是否清除  //notification.flags = Notification.FLAG_AUTO_CANCEL;
+                .setAutoCancel(false) // 設置通知被使用者點擊後是否清除 //notification.flags = Notification.FLAG_AUTO_CANCEL;
                 .setContentText(contentText)// 設置上下文內容
-                .setOngoing(true)      //true使notification變為ongoing，用戶不能手動清除// notification.flags = Notification.FLAG_ONGOING_EVENT; notification.flags = Notification.FLAG_NO_CLEAR;
+                .setOngoing(true) // true使notification變為ongoing，用戶不能手動清除// notification.flags =
+                                  // Notification.FLAG_ONGOING_EVENT; notification.flags =
+                                  // Notification.FLAG_NO_CLEAR;
                 .setContentIntent(pendingMainIntent)
                 .setChannelId(channelID);
-//                .build();
+        // .build();
         if (null != icon) {
             builder.setLargeIcon(icon);
         }
@@ -86,10 +79,9 @@ public class NotificationCollectorMonitorService extends Service {
         return notification;
     }
 
-
     void startNotification(String contentText, Bitmap icon) {
-//        log("startNotification");
-        //Step1. 初始化NotificationManager，取得Notification服務
+        // log("startNotification");
+        // Step1. 初始化NotificationManager，取得Notification服務
         mNotificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         notification = getNormalNotification(null == contentText ? "GMaps Notify Monitor Service" : contentText, icon);
 
@@ -98,24 +90,24 @@ public class NotificationCollectorMonitorService extends Service {
             NotificationChannel channel = new NotificationChannel(
                     channelID,
                     "Notify Monitor",
-                    NotificationManager.IMPORTANCE_MAX);
+                    NotificationManager.IMPORTANCE_DEFAULT);
             channel.enableLights(false);
-            //it had a bug which is vibration cannot be disabled normally.
-            channel.setVibrationPattern(new long[]{0});
+            // it had a bug which is vibration cannot be disabled normally.
+            channel.setVibrationPattern(new long[] { 0 });
             channel.enableVibration(true);
 
             mNotificationManager.createNotificationChannel(channel);
         } else {
-            notification.vibrate = new long[]{0};
+            notification.vibrate = new long[] { 0 };
         }
 
         // 把指定ID的通知持久的發送到狀態條上.
-//        mNotificationManager.notify(R.integer.notify_id, notification);
+        // mNotificationManager.notify(R.integer.notify_id, notification);
         startForeground(1, notification);
     }
 
     private void stopNotification() {
-//        log("stopNotification");
+        // log("stopNotification");
 
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         mNotificationManager.cancelAll();
@@ -127,7 +119,8 @@ public class NotificationCollectorMonitorService extends Service {
     }
 
     private void ensureCollectorRunning() {
-        ComponentName collectorComponent = new ComponentName(this, /*NotificationListenerService Inheritance*/ NotificationMonitor.class);
+        ComponentName collectorComponent = new ComponentName(this,
+                /* NotificationListenerService Inheritance */ NotificationMonitor.class);
         Log.v(TAG, "ensureCollectorRunning collectorComponent: " + collectorComponent);
         ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
         boolean collectorRunning = false;
@@ -138,9 +131,15 @@ public class NotificationCollectorMonitorService extends Service {
         }
         for (ActivityManager.RunningServiceInfo service : runningServices) {
             if (service.service.equals(collectorComponent)) {
-                Log.w(TAG, "ensureCollectorRunning service - pid: " + service.pid + ", currentPID: " + Process.myPid() + ", clientPackage: " + service.clientPackage + ", clientCount: " + service.clientCount
-                        + ", clientLabel: " + ((service.clientLabel == 0) ? "0" : "(" + getResources().getString(service.clientLabel) + ")"));
-                if (service.pid == Process.myPid() /*&& service.clientCount > 0 && !TextUtils.isEmpty(service.clientPackage)*/) {
+                Log.w(TAG,
+                        "ensureCollectorRunning service - pid: " + service.pid + ", currentPID: " + Process.myPid()
+                                + ", clientPackage: " + service.clientPackage + ", clientCount: " + service.clientCount
+                                + ", clientLabel: " + ((service.clientLabel == 0) ? "0"
+                                        : "(" + getResources().getString(service.clientLabel) + ")"));
+                if (service.pid == Process.myPid() /*
+                                                    * && service.clientCount > 0 &&
+                                                    * !TextUtils.isEmpty(service.clientPackage)
+                                                    */) {
                     collectorRunning = true;
                 }
             }
@@ -155,17 +154,17 @@ public class NotificationCollectorMonitorService extends Service {
 
     private void toggleNotificationListenerService() {
         Log.d(TAG, "toggleNotificationListenerService() called");
-        ComponentName thisComponent = new ComponentName(this, /*getClass()*/ NotificationMonitor.class);
+        ComponentName thisComponent = new ComponentName(this, /* getClass() */ NotificationMonitor.class);
         PackageManager pm = getPackageManager();
-        pm.setComponentEnabledSetting(thisComponent, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP);
-        pm.setComponentEnabledSetting(thisComponent, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
+        pm.setComponentEnabledSetting(thisComponent, PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                PackageManager.DONT_KILL_APP);
+        pm.setComponentEnabledSetting(thisComponent, PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                PackageManager.DONT_KILL_APP);
 
     }
-
 
     @Override
     public IBinder onBind(Intent intent) {
         return null;
     }
 }
-
