@@ -143,13 +143,11 @@ public class NotificationMonitor extends NotificationListenerService {
     @Override
     public void onCreate() {
         super.onCreate();
-        // sometime onCreate run before sHud, that should be make garmunino app failed when android booting.
+        // sometime onCreate run before sHud, that should be make garmunino app failed
+        // when android booting.
         // check null on sHud maybe can resolve no notification capture problem!?
-        if (null == sHud) {
-            return;
-        }
-        // Ensure queue notifications are around 1 second old
-        final int maxQueueSize = sHud.getMaxUpdatesPerSecond();
+        // CRITICAL FIX: Use default queue size if sHud is not yet initialized
+        final int maxQueueSize = (null != sHud) ? sHud.getMaxUpdatesPerSecond() : 10;
         mExecutor = new ThreadPoolExecutor(1, 1,
                 0L, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<>(maxQueueSize),
@@ -158,20 +156,21 @@ public class NotificationMonitor extends NotificationListenerService {
         logi("onCreate...");
         mMonitorHandler.sendMessage(mMonitorHandler.obtainMessage(EVENT_UPDATE_CURRENT_NOS));
 
-        //========================================================================================
+        // ========================================================================================
         // message receiver
-        //========================================================================================
+        // ========================================================================================
         mMsgReceiver = new MsgReceiver();
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(getString(R.string.broadcast_receiver_notification_monitor));
 
         registerReceiver(mMsgReceiver, intentFilter);
 
-        //========================================================================================
+        // ========================================================================================
         sStaticInstance = this;
-        mPostman = MainActivityPostman.toMainActivityInstance(this, getString(R.string.broadcast_sender_notification_monitor));
+        mPostman = MainActivityPostman.toMainActivityInstance(this,
+                getString(R.string.broadcast_sender_notification_monitor));
 
-        //========================================================================================
+        // ========================================================================================
 
         loadArrowImagesInAssets();
     }
@@ -210,7 +209,6 @@ public class NotificationMonitor extends NotificationListenerService {
         return super.onBind(intent);
     }
 
-
     private void processNotification(StatusBarNotification sbn) {
         if (null == mExecutor) {
             return;
@@ -231,21 +229,23 @@ public class NotificationMonitor extends NotificationListenerService {
 
                     case GOOGLE_MAPS_GO_PACKAGE_NAME:
                         mNotifySource = 1;
-//                        mParseMethod = 0;
-//                        boolean parseResult = parseGmapsNotificationByExtras(notification);
+                        // mParseMethod = 0;
+                        // boolean parseResult = parseGmapsNotificationByExtras(notification);
                         parseGmapsNotification(notification);
                         break;
-                    /*case OSMAND_PACKAGE_NAME:
-                        parseOsmandNotification(notification);
-                        break;
-                    case SYGIC_PACKAGE_NAME:
-                        parseSygicNotification(notification);
-                        break;
-                    */
+                    /*
+                     * case OSMAND_PACKAGE_NAME:
+                     * parseOsmandNotification(notification);
+                     * break;
+                     * case SYGIC_PACKAGE_NAME:
+                     * parseSygicNotification(notification);
+                     * break;
+                     */
                     default:
-//                        String notifyMessage = "No gmaps' notification!?!?" + " (found: " + packageName + ")";
-//                        mPostman.addStringExtra(getString(R.string.notify_msg), notifyMessage);
-//                        mPostman.sendIntent2MainActivity();
+                        // String notifyMessage = "No gmaps' notification!?!?" + " (found: " +
+                        // packageName + ")";
+                        // mPostman.addStringExtra(getString(R.string.notify_msg), notifyMessage);
+                        // mPostman.sendIntent2MainActivity();
                         break;
                 }
             } else {
@@ -303,7 +303,7 @@ public class NotificationMonitor extends NotificationListenerService {
                     }
                 }
             }
-            // Check if subText is empty (" ·  · ") --> don't parse subText
+            // Check if subText is empty (" · · ") --> don't parse subText
             // Occurs for example on NagivationChanged
         }
     }
@@ -329,12 +329,12 @@ public class NotificationMonitor extends NotificationListenerService {
         boolean parseResult = parseGmapsNotificationByExtras(notification);
         if (!parseResult) {
             mParseMethod = 1;
-            //gmap on android 7.0 need parsing by reflection
+            // gmap on android 7.0 need parsing by reflection
             parseResult = parseGmapsNotificationByReflection(notification);
         }
         if (!parseResult) {
             mParseMethod = 2;
-            //gmap on android 6.0 need parsing by java reflection
+            // gmap on android 6.0 need parsing by java reflection
             parseResult = parseGmapsNotificationByJavaReflection(notification);
         }
 
@@ -344,7 +344,8 @@ public class NotificationMonitor extends NotificationListenerService {
             mPostman.addBooleanExtra(getString(R.string.is_in_navigation), false);
             mPostman.sendIntent2MainActivity();
 
-            String notifyMessage = "Notify parsing failed. " + (noViewsSituation ? "(non-SDK interface restrictions)" : "");
+            String notifyMessage = "Notify parsing failed. "
+                    + (noViewsSituation ? "(non-SDK interface restrictions)" : "");
             mPostman.addStringExtra(getString(R.string.notify_msg), notifyMessage);
         } else {
             mPostman.addBooleanExtra(getString(R.string.notify_parse_failed), false);
@@ -380,16 +381,16 @@ public class NotificationMonitor extends NotificationListenerService {
     private static RemoteViews getRemoteViews(Notification notification) {
         // We have to extract the information from the view
         RemoteViews views = notification.bigContentView;
-//        views.writeToParcel();
+        // views.writeToParcel();
         if (!viewsHasActionsField(views)) {
-            //check mActions is exist, we use it to parse notification
+            // check mActions is exist, we use it to parse notification
             views = null;
         }
         if (views == null) {
             views = notification.contentView;
         }
         if (!viewsHasActionsField(views)) {
-            //check mActions again
+            // check mActions again
             views = null;
         }
 
@@ -397,7 +398,7 @@ public class NotificationMonitor extends NotificationListenerService {
             views = notification.headsUpContentView;
         }
         if (!viewsHasActionsField(views)) {
-            //check mActions again
+            // check mActions again
             views = null;
         }
         return views;
@@ -405,9 +406,11 @@ public class NotificationMonitor extends NotificationListenerService {
 
     private boolean parseGmapsGoNotificationByReflection(Notification notification) {
         RemoteViews views = getRemoteViews(notification);
-        if (views == null) return false;
+        if (views == null)
+            return false;
 
-        // Use reflection to examine the m_actions member of the given RemoteViews object.
+        // Use reflection to examine the m_actions member of the given RemoteViews
+        // object.
         // It's not pretty, but it works.
         try {
 
@@ -433,13 +436,13 @@ public class NotificationMonitor extends NotificationListenerService {
                     if (value instanceof String) {
                         switch (indexOfActions) {
                             case 4:
-                                //distance
+                                // distance
                                 break;
                             case 6:
-                                //road
+                                // road
                                 break;
                             case 9:
-                                //time
+                                // time
                                 break;
                         }
                     }
@@ -470,7 +473,8 @@ public class NotificationMonitor extends NotificationListenerService {
             logParseMessage();
             return true;
         }
-        // It's not usually good style to do this, but then again, neither is the use of reflection...
+        // It's not usually good style to do this, but then again, neither is the use of
+        // reflection...
         catch (Exception e) {
             Log.e(TAG, e.toString());
             return false;
@@ -483,9 +487,11 @@ public class NotificationMonitor extends NotificationListenerService {
      */
     private boolean parseGmapsNotificationByReflection(Notification notification) {
         RemoteViews views = getRemoteViews(notification);
-        if (views == null) return false;
+        if (views == null)
+            return false;
 
-        // Use reflection to examine the m_actions member of the given RemoteViews object.
+        // Use reflection to examine the m_actions member of the given RemoteViews
+        // object.
         // It's not pretty, but it works.
         try {
 
@@ -508,22 +514,25 @@ public class NotificationMonitor extends NotificationListenerService {
                     continue;
                 }
                 p.writeToParcel(parcel, 0);
-//                p.writeToParcel(parcel, Parcelable.PARCELABLE_WRITE_RETURN_VALUE);
+                // p.writeToParcel(parcel, Parcelable.PARCELABLE_WRITE_RETURN_VALUE);
                 parcel.setDataPosition(0);
 
-                // The tag tells which type of action it is (2 is ReflectionAction, from the source)
+                // The tag tells which type of action it is (2 is ReflectionAction, from the
+                // source)
                 int tag = parcel.readInt();
                 String simpleClassName = p.getClass().getSimpleName();
 
-                if ((tag != 2 && tag != 12) && (!simpleClassName.equals("ReflectionAction") && !simpleClassName.equals("BitmapReflectionAction")))
+                if ((tag != 2 && tag != 12) && (!simpleClassName.equals("ReflectionAction")
+                        && !simpleClassName.equals("BitmapReflectionAction")))
                     continue;
 
                 String methodName = parcel.readString();
                 String str = p.toString();
-                //methodName = null == methodName ? p.
+                // methodName = null == methodName ? p.
                 String textOnGmapsNotify = "";
-                if (methodName == null) continue;
-                    // Save strings
+                if (methodName == null)
+                    continue;
+                // Save strings
                 else if (methodName.equals("setText")) {
                     // Parameter type (10 = Character Sequence)
                     parcel.readInt();
@@ -536,11 +545,11 @@ public class NotificationMonitor extends NotificationListenerService {
                             inNavigation = t.equalsIgnoreCase(getString(R.string.exit_navigation));
                             break;
                         case 3:
-                            //distance to turn
+                            // distance to turn
                             parseDistanceToTurn(t);
                             break;
                         case 8:
-                            //time, distance, arrived time
+                            // time, distance, arrived time
                             parseTimeAndDistanceToDest(t);
                             updateCount++;
                             break;
@@ -590,7 +599,6 @@ public class NotificationMonitor extends NotificationListenerService {
                             mPostman.sendIntent2MainActivity();
                         }
 
-
                         updateCount++;
                     }
                     validActionCount++;
@@ -602,13 +610,14 @@ public class NotificationMonitor extends NotificationListenerService {
             if (validActionCount != 0) {
                 logParseMessage();
             }
-            //can update to garmin hud
+            // can update to garmin hud
             if (0 != updateCount && inNavigation) {
                 updateHudInformation();
             }
             return validActionCount != 0;
         }
-        // It's not usually good style to do this, but then again, neither is the use of reflection...
+        // It's not usually good style to do this, but then again, neither is the use of
+        // reflection...
         catch (Exception e) {
             Log.e(TAG, e.toString());
             return false;
@@ -631,7 +640,8 @@ public class NotificationMonitor extends NotificationListenerService {
         boolean inNavigation = false;
         int validActionCount = 0;
 
-        // Use reflection to examine the m_actions member of the given RemoteViews object.
+        // Use reflection to examine the m_actions member of the given RemoteViews
+        // object.
         // It's not pretty, but it works.
         try {
 
@@ -639,13 +649,14 @@ public class NotificationMonitor extends NotificationListenerService {
             Field outerFields[] = viewsClass.getDeclaredFields();
 
             for (int i = 0; i < outerFields.length; i++) {
-                if (!outerFields[i].getName().equals("mActions")) continue;
+                if (!outerFields[i].getName().equals("mActions"))
+                    continue;
 
                 outerFields[i].setAccessible(true);
 
                 ArrayList<Object> actions = (ArrayList<Object>) outerFields[i]
                         .get(views);
-                //String textOnGmapsNotify = "";
+                // String textOnGmapsNotify = "";
                 for (Object action : actions) {
                     Field innerFields[] = action.getClass().getDeclaredFields();
                     Integer viewId = null;
@@ -683,7 +694,7 @@ public class NotificationMonitor extends NotificationListenerService {
                                         inNavigation = t.equalsIgnoreCase(getString(R.string.exit_navigation));
                                         break;
                                     case 4:
-                                        //distance to turn
+                                        // distance to turn
                                         parseDistanceToTurn(t);
                                         updateCount++;
                                         validActionCount++;
@@ -693,7 +704,7 @@ public class NotificationMonitor extends NotificationListenerService {
                                         textOnGmapsNotifyByJavaReflection += " " + t;
                                         break;
                                     case 9:
-                                        //time, distance, arrived time
+                                        // time, distance, arrived time
                                         parseTimeAndDistanceToDest(t);
                                         updateCount++;
                                         validActionCount++;
@@ -725,7 +736,6 @@ public class NotificationMonitor extends NotificationListenerService {
                                     ImageUtils.storeBitmap(bitmapImage, IMAGE_DIR, "arrow.png");
                                 }
 
-
                                 Bitmap foundArrowBitmap = null;
                                 if (mArrowTypeV2) {
                                     final int index = getArrowV2Index(bitmapImage);
@@ -741,7 +751,8 @@ public class NotificationMonitor extends NotificationListenerService {
                                     foundArrowBitmap = arrowImage.binaryImage;
                                 }
                                 mPostman.addParcelableExtra(getString(R.string.arrow_bitmap), foundArrowBitmap);
-                                mPostman.addStringExtra(getString(R.string.gmaps_notify_msg), textOnGmapsNotifyByJavaReflection);
+                                mPostman.addStringExtra(getString(R.string.gmaps_notify_msg),
+                                        textOnGmapsNotifyByJavaReflection);
                                 mPostman.sendIntent2MainActivity();
 
                                 validActionCount++;
@@ -761,13 +772,14 @@ public class NotificationMonitor extends NotificationListenerService {
             } else {
                 mIsNavigating = false;
             }
-            //can update to garmin hud
+            // can update to garmin hud
             if (0 != updateCount && inNavigation) {
                 updateHudInformation();
             }
             return validActionCount != 0;
         }
-        // It's not usually good style to do this, but then again, neither is the use of reflection...
+        // It's not usually good style to do this, but then again, neither is the use of
+        // reflection...
         catch (Exception e) {
             Log.e(TAG, e.toString());
             return false;
@@ -851,7 +863,7 @@ public class NotificationMonitor extends NotificationListenerService {
         Object _subTextObj = extras.get(Notification.EXTRA_SUB_TEXT);
 
         if ((null != extras) && (null != group_name) && group_name.equals(GOOGLE_MAPS_NOTIFICATION_GROUP_NAVIGATION)) {
-            //not in navigation(chinese) of title: 參考 Google 地圖行駛
+            // not in navigation(chinese) of title: 參考 Google 地圖行駛
             Object titleObj = extras.get(Notification.EXTRA_TITLE);
             Object textObj = extras.get(Notification.EXTRA_TEXT);
             Object subTextObj = extras.get(Notification.EXTRA_SUB_TEXT);
@@ -861,9 +873,9 @@ public class NotificationMonitor extends NotificationListenerService {
             String subText = parseString(subTextObj);
             subText = null == subText ? text : subText;
 
-            String textOnGmapsNotify = title;//subText + " " + title + " " + text;
+            String textOnGmapsNotify = title;// subText + " " + title + " " + text;
 
-            // Check if subText is empty (" ·  · ") --> don't parse subText
+            // Check if subText is empty (" · · ") --> don't parse subText
             // Occurs for example on NavigationChanged
             boolean subTextEmpty = true;
             if (null != subText) {
@@ -885,7 +897,8 @@ public class NotificationMonitor extends NotificationListenerService {
                 String[] title_str = title.split("–");
                 title_str = 1 == title_str.length ? title.split("-") : title_str;
                 String distance = title_str[0].trim();
-                if (Character.isDigit(distance.charAt(0))) {
+                // CRITICAL FIX: Check if distance is not empty before charAt()
+                if (!distance.isEmpty() && Character.isDigit(distance.charAt(0))) {
                     parseDistanceToTurn(distance);
                 } else {
                     mDistanceNum = "-1";
@@ -898,28 +911,37 @@ public class NotificationMonitor extends NotificationListenerService {
 
                     if (null != bitmapImage) {
                         if (STORE_IMG) {
-//                            if (!ImageUtils.storeBitmapQ(bitmapImage, "arrow0.png")) {
+                            // if (!ImageUtils.storeBitmapQ(bitmapImage, "arrow0.png")) {
                             if (!ImageUtils.storeBitmap(bitmapImage, IMAGE_DIR, "arrow0.png")) {
                                 Log.d(TAG, "Store arrow bitmap failed.");
                             }
                         }
                         Bitmap foundArrowBitmap = null;
-                        if (mArrowTypeV2) {
-                            final int index = getArrowV2Index(bitmapImage);
-                            mFoundArrowV2 = ArrowV2.values()[index];
-                            mLastFoundArrowV2 = mFoundArrowV2;
+                        // CRITICAL FIX: Wrap in try-catch to prevent bitmap processing crashes
+                        try {
+                            if (mArrowTypeV2) {
+                                final int index = getArrowV2Index(bitmapImage);
+                                mFoundArrowV2 = ArrowV2.values()[index];
+                                mLastFoundArrowV2 = mFoundArrowV2;
 
-                            foundArrowBitmap = mArrowBitmaps[index];
-                        } else {
-                            ArrowImage arrowImage = new ArrowImage(bitmapImage);
-                            mFoundArrow = getArrow(arrowImage);
-                            mLastFoundArrow = mFoundArrow;
+                                foundArrowBitmap = mArrowBitmaps[index];
+                            } else {
+                                ArrowImage arrowImage = new ArrowImage(bitmapImage);
+                                mFoundArrow = getArrow(arrowImage);
+                                mLastFoundArrow = mFoundArrow;
 
-                            foundArrowBitmap = arrowImage.binaryImage;
+                                foundArrowBitmap = arrowImage.binaryImage;
+                            }
+
+                            if (null != foundArrowBitmap) {
+                                mPostman.addParcelableExtra(getString(R.string.arrow_bitmap), foundArrowBitmap);
+                                mPostman.addStringExtra(getString(R.string.gmaps_notify_msg), textOnGmapsNotify);
+                                mPostman.sendIntent2MainActivity();
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "Error processing arrow bitmap: " + e.getMessage(), e);
+                            // Continue without arrow icon
                         }
-                        mPostman.addParcelableExtra(getString(R.string.arrow_bitmap), foundArrowBitmap);
-                        mPostman.addStringExtra(getString(R.string.gmaps_notify_msg), textOnGmapsNotify);
-                        mPostman.sendIntent2MainActivity();
                     }
                 }
                 logParseMessage();
@@ -955,7 +977,8 @@ public class NotificationMonitor extends NotificationListenerService {
         }
     }
 
-    // Translates the units (distance and time) from local language and charset in common values
+    // Translates the units (distance and time) from local language and charset in
+    // common values
     private String translate(String local_language_string) {
         if (local_language_string.equalsIgnoreCase(getString(R.string.km))) {
             return "km";
@@ -1071,7 +1094,7 @@ public class NotificationMonitor extends NotificationListenerService {
         final int targetHeight = mArrowBitmaps[0].getHeight();
         Bitmap noAlphaImage = ImageUtils.removeAlpha(image);
         Bitmap scaleImage = ImageUtils.getScaleBitmap(noAlphaImage, targetWidth, targetHeight);
-//        scaleImage = ImageUtils.removeAlpha(scaleImage);
+        // scaleImage = ImageUtils.removeAlpha(scaleImage);
         final int length = mArrowBitmaps.length;
 
         sArrowMinSad = Integer.MAX_VALUE;
@@ -1079,8 +1102,8 @@ public class NotificationMonitor extends NotificationListenerService {
         int sadArray[] = new int[mArrowBitmaps.length];
 
         for (int x = 0; x < length; x++) {
-//            int sad = getNotWhiteSAD(scaleImage, mArrowBitmaps[x]);
-            //getGreenSAD better than getNotWhiteSAD(?)
+            // int sad = getNotWhiteSAD(scaleImage, mArrowBitmaps[x]);
+            // getGreenSAD better than getNotWhiteSAD(?)
             int sad = getGreenSAD(scaleImage, mArrowBitmaps[x]);
             sadArray[x] = sad;
             if (-1 != sad && sad < sArrowMinSad) {
@@ -1190,9 +1213,9 @@ public class NotificationMonitor extends NotificationListenerService {
                 break;
 
             case LeaveRoundabout:
-                //1 checked
+                // 1 checked
             case LeaveRoundaboutLeft:
-                //9 checked
+                // 9 checked
                 sHud.setDirection(eOutAngle.Left, eOutType.LeftRoundabout, eOutAngle.Left);
                 break;
 
@@ -1205,62 +1228,62 @@ public class NotificationMonitor extends NotificationListenerService {
                 break;
 
             case LeaveRoundaboutEasyLeft:
-                //4 checked
+                // 4 checked
                 sHud.setDirection(eOutAngle.EasyLeft, eOutType.LeftRoundabout, eOutAngle.EasyLeft);
                 break;
 
             case LeaveRoundaboutEasyLeftCC:
-                //5 checked
+                // 5 checked
                 sHud.setDirection(eOutAngle.EasyLeft, eOutType.RightRoundabout, eOutAngle.EasyLeft);
                 break;
 
             case LeaveRoundaboutEasyRight:
-                //6 checked
+                // 6 checked
                 sHud.setDirection(eOutAngle.EasyRight, eOutType.LeftRoundabout, eOutAngle.EasyRight);
                 break;
 
             case LeaveRoundaboutEasyRightCC:
-                //7 checked
+                // 7 checked
                 sHud.setDirection(eOutAngle.EasyRight, eOutType.RightRoundabout, eOutAngle.EasyRight);
                 break;
 
             case LeaveRoundaboutCC:
-                //8 checked
+                // 8 checked
                 sHud.setDirection(eOutAngle.Right, eOutType.RightRoundabout, eOutAngle.Right);
                 break;
 
             case LeaveRoundaboutLeftCC:
-                //10 checked
+                // 10 checked
                 sHud.setDirection(eOutAngle.Left, eOutType.RightRoundabout, eOutAngle.Left);
                 break;
 
             case LeaveRoundaboutRight:
-                //11 checked
+                // 11 checked
                 sHud.setDirection(eOutAngle.Right, eOutType.LeftRoundabout, eOutAngle.Right);
                 break;
 
             case LeaveRoundaboutRightCC:
-                //12 checked
+                // 12 checked
                 sHud.setDirection(eOutAngle.Right, eOutType.RightRoundabout, eOutAngle.Right);
                 break;
 
             case LeaveRoundaboutSharpLeft:
-                //13 checked
+                // 13 checked
                 sHud.setDirection(eOutAngle.SharpLeft, eOutType.LeftRoundabout, eOutAngle.SharpLeft);
                 break;
 
             case LeaveRoundaboutSharpLeftCC:
-                //14 checked
+                // 14 checked
                 sHud.setDirection(eOutAngle.SharpLeft, eOutType.RightRoundabout, eOutAngle.SharpLeft);
                 break;
 
             case LeaveRoundaboutSharpRight:
-                //15 checked
+                // 15 checked
                 sHud.setDirection(eOutAngle.SharpRight, eOutType.LeftRoundabout, eOutAngle.SharpRight);
                 break;
 
             case LeaveRoundaboutSharpRightCC:
-                //16
+                // 16
                 sHud.setDirection(eOutAngle.SharpRight, eOutType.RightRoundabout, eOutAngle.SharpRight);
                 break;
 
@@ -1347,8 +1370,8 @@ public class NotificationMonitor extends NotificationListenerService {
 
             case LeaveRoundabout:
             case LeaveRoundaboutLeft:
-                //9 checked
-                //1 checked
+                // 9 checked
+                // 1 checked
                 sHud.setDirection(eOutAngle.Left, eOutType.LeftRoundabout, eOutAngle.Left);
                 break;
 
@@ -1361,62 +1384,62 @@ public class NotificationMonitor extends NotificationListenerService {
                 break;
 
             case LeaveRoundaboutEasyLeft:
-                //4 checked
+                // 4 checked
                 sHud.setDirection(eOutAngle.EasyLeft, eOutType.LeftRoundabout, eOutAngle.EasyLeft);
                 break;
 
             case LeaveRoundaboutEasyLeftCC:
-                //5 checked
+                // 5 checked
                 sHud.setDirection(eOutAngle.EasyLeft, eOutType.RightRoundabout, eOutAngle.EasyLeft);
                 break;
 
             case LeaveRoundaboutEasyRight:
-                //6 checked
+                // 6 checked
                 sHud.setDirection(eOutAngle.EasyRight, eOutType.LeftRoundabout, eOutAngle.EasyRight);
                 break;
 
             case LeaveRoundaboutEasyRightCC:
-                //7 checked
+                // 7 checked
                 sHud.setDirection(eOutAngle.EasyRight, eOutType.RightRoundabout, eOutAngle.EasyRight);
                 break;
 
             case LeaveRoundaboutCC:
-                //8 checked
+                // 8 checked
                 sHud.setDirection(eOutAngle.Right, eOutType.RightRoundabout, eOutAngle.Right);
                 break;
 
             case LeaveRoundaboutLeftCC:
-                //10 checked
+                // 10 checked
                 sHud.setDirection(eOutAngle.Left, eOutType.RightRoundabout, eOutAngle.Left);
                 break;
 
             case LeaveRoundaboutRight:
-                //11 checked
+                // 11 checked
                 sHud.setDirection(eOutAngle.Right, eOutType.LeftRoundabout, eOutAngle.Right);
                 break;
 
             case LeaveRoundaboutRightCC:
-                //12 checked
+                // 12 checked
                 sHud.setDirection(eOutAngle.Right, eOutType.RightRoundabout, eOutAngle.Right);
                 break;
 
             case LeaveRoundaboutSharpLeft:
-                //13 checked
+                // 13 checked
                 sHud.setDirection(eOutAngle.SharpLeft, eOutType.LeftRoundabout, eOutAngle.SharpLeft);
                 break;
 
             case LeaveRoundaboutSharpLeftCC:
-                //14 checked
+                // 14 checked
                 sHud.setDirection(eOutAngle.SharpLeft, eOutType.RightRoundabout, eOutAngle.SharpLeft);
                 break;
 
             case LeaveRoundaboutSharpRight:
-                //15 checked
+                // 15 checked
                 sHud.setDirection(eOutAngle.SharpRight, eOutType.LeftRoundabout, eOutAngle.SharpRight);
                 break;
 
             case LeaveRoundaboutSharpRightCC:
-                //16
+                // 16
                 sHud.setDirection(eOutAngle.SharpRight, eOutType.RightRoundabout, eOutAngle.SharpRight);
                 break;
 
@@ -1464,9 +1487,9 @@ public class NotificationMonitor extends NotificationListenerService {
     private void updateHudInformation() {
         Log.i(TAG, "hud: " + sHud);
 
-        //===================================================================================
+        // ===================================================================================
         // distance
-        //===================================================================================
+        // ===================================================================================
         if (null != mDistanceNum && null != mDistanceUnit) {
             float float_distance = Float.parseFloat(mDistanceNum);
             int int_distance = (int) float_distance;
@@ -1486,11 +1509,11 @@ public class NotificationMonitor extends NotificationListenerService {
         }
 
         final boolean distanceSendResult = null != sHud && sHud.getSendResult();
-        //===================================================================================
+        // ===================================================================================
 
-        //===================================================================================
+        // ===================================================================================
         // remaining distance
-        //===================================================================================
+        // ===================================================================================
         if (null != mRemainingDistance && null != mRemainingDistanceUnits) {
             float float_distance = Float.parseFloat(mRemainingDistance);
             int int_distance = (int) float_distance;
@@ -1510,16 +1533,16 @@ public class NotificationMonitor extends NotificationListenerService {
         }
 
         final boolean remainingDistanceSendResult = null != sHud && sHud.getSendResult();
-        //===================================================================================
+        // ===================================================================================
 
-        //===================================================================================
+        // ===================================================================================
         // time
-        //===================================================================================
+        // ===================================================================================
         boolean timeSendResult = false;
 
         if (null != mRemainingMinutes) {
             if (mShowETA) {
-                //show ETA
+                // show ETA
                 if (mArrivalHours != -1 && mArrivalMinutes != -1) {
                     boolean sameAsLast = mArrivalHours == mLastArrivalHours && mArrivalMinutes == mLastArrivalMinutes;
 
@@ -1533,7 +1556,7 @@ public class NotificationMonitor extends NotificationListenerService {
                     }
                 }
             } else {
-                //show remain time
+                // show remain time
                 int hh = null != mRemainingHours ? Integer.parseInt(mRemainingHours) : 0;
                 int mm = Integer.parseInt(mRemainingMinutes);
 
@@ -1543,19 +1566,20 @@ public class NotificationMonitor extends NotificationListenerService {
                 timeSendResult = (null != sHud) && sHud.getSendResult();
             }
         }
-        //===================================================================================
+        // ===================================================================================
 
-        //===================================================================================
+        // ===================================================================================
         // arrow
-        // if same as last arrow, should be process, because GARMIN Hud will erase the arrow without data receive during sometime..
-        //===================================================================================
+        // if same as last arrow, should be process, because GARMIN Hud will erase the
+        // arrow without data receive during sometime..
+        // ===================================================================================
         if (mArrowTypeV2) {
             updateArrow(mFoundArrowV2);
         } else {
             updateArrow(mFoundArrow);
         }
         final boolean arrowSendResult = (null != sHud) && sHud.getSendResult();
-        //===================================================================================
+        // ===================================================================================
 
         String sendResultInfo = "SendResult dist: " + (distanceSendResult ? '1' : '0')
                 + " remaining dist: " + (remainingDistanceSendResult ? '1' : '0')
@@ -1574,9 +1598,9 @@ public class NotificationMonitor extends NotificationListenerService {
             String distanceToDest = timeDistanceSplit[1].trim();
             String timeToArrived = timeDistanceSplit[2].trim();
 
-            //======================================================================================
+            // ======================================================================================
             // remain time
-            //======================================================================================
+            // ======================================================================================
             String[] timeSplit = timeToDest.split(" ");
             if (4 == timeSplit.length) {
                 mRemainingHours = timeSplit[0].trim();
@@ -1589,7 +1613,8 @@ public class NotificationMonitor extends NotificationListenerService {
                 final int minute_index = timeToDest.indexOf(getString(R.string.minute));
                 if (-1 != hour_index && -1 != minute_index) {
                     mRemainingHours = timeToDest.substring(0, hour_index).trim();
-                    mRemainingMinutes = timeToDest.substring(hour_index + getString(R.string.hour).length(), minute_index).trim();
+                    mRemainingMinutes = timeToDest
+                            .substring(hour_index + getString(R.string.hour).length(), minute_index).trim();
                     // Remove spaces, .trim() seems not working
                     mRemainingHours = mRemainingHours.replaceAll("\u00A0", "");
                     mRemainingMinutes = mRemainingMinutes.replaceAll("\u00A0", "");
@@ -1604,11 +1629,11 @@ public class NotificationMonitor extends NotificationListenerService {
                 timeSplit = splitDigitAndNonDigit(timeToDest);
                 mRemainingMinutes = 2 == timeSplit.length ? timeSplit[0] : null;
             }
-            //======================================================================================
+            // ======================================================================================
 
-            //======================================================================================
+            // ======================================================================================
             // remaining distance
-            //======================================================================================
+            // ======================================================================================
             String[] distSplit = distanceToDest.split("\\s");
             if (2 != distSplit.length) {
                 distSplit = splitDigitAndNonDigit(distanceToDest);
@@ -1621,11 +1646,11 @@ public class NotificationMonitor extends NotificationListenerService {
                 mRemainingDistanceUnits = distSplit[1].replaceAll("\u00A0", "");
                 mRemainingDistanceUnits = translate(mRemainingDistanceUnits);
             }
-            //======================================================================================
+            // ======================================================================================
 
-            //======================================================================================
-            //ETA
-            //======================================================================================
+            // ======================================================================================
+            // ETA
+            // ======================================================================================
             final String ETA = getString(R.string.ETA);
             final int indexOfETA = timeToArrived.indexOf(ETA);
             String[] arrivedSplit;
@@ -1646,7 +1671,7 @@ public class NotificationMonitor extends NotificationListenerService {
             final boolean ampmAtFirst = 0 == amIndex || 0 == pmIndex;
 
             if (-1 != amIndex || -1 != pmIndex) { // 12-hour-format
-                final int index = Math.max(amIndex, pmIndex);  // index of "am" or "pm"
+                final int index = Math.max(amIndex, pmIndex); // index of "am" or "pm"
                 arrivalTime = ampmAtFirst ? arrivalTime.substring(index + 2) : arrivalTime.substring(0, index);
                 arrivalTime = arrivalTime.trim();
 
@@ -1670,7 +1695,7 @@ public class NotificationMonitor extends NotificationListenerService {
                     }
                 }
             }
-            //======================================================================================
+            // ======================================================================================
         }
     }
 
@@ -1766,8 +1791,11 @@ public class NotificationMonitor extends NotificationListenerService {
                 // Check if arrival is possible (don't know if mm==0 work always)
                 if (hh == 0 && mm <= 5 && mm != -1) {
                     // Arrived: Delete Distance to turn
-                    final boolean notArrivals = mArrowTypeV2 ? (mLastFoundArrowV2 != ArrowV2.ArrivalsLeft) && (mLastFoundArrowV2 != ArrowV2.ArrivalsRight) :
-                            (mLastFoundArrow != Arrow.Arrivals) && (mLastFoundArrow != Arrow.ArrivalsLeft) && (mLastFoundArrow != Arrow.ArrivalsRight);
+                    final boolean notArrivals = mArrowTypeV2
+                            ? (mLastFoundArrowV2 != ArrowV2.ArrivalsLeft)
+                                    && (mLastFoundArrowV2 != ArrowV2.ArrivalsRight)
+                            : (mLastFoundArrow != Arrow.Arrivals) && (mLastFoundArrow != Arrow.ArrivalsLeft)
+                                    && (mLastFoundArrow != Arrow.ArrivalsRight);
 
                     if (notArrivals) {
                         if (sHud != null) {

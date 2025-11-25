@@ -1,0 +1,20 @@
+--- a/gmaps_hud/src/main/java/sky4s/garminhud/app/NotificationMonitor.java
++++ b/gmaps_hud/src/main/java/sky4s/garminhud/app/NotificationMonitor.java
+@@ -143,14 +143,11 @@ public class NotificationMonitor extends NotificationListenerService {
+     @Override
+     public void onCreate() {
+         super.onCreate();
+-        // sometime onCreate run before sHud, that should be make garmunino app failed when android booting.
+-        // check null on sHud maybe can resolve no notification capture problem!?
+-        if (null == sHud) {
+-            return;
+-        }
+-        // Ensure queue notifications are around 1 second old
+-        final int maxQueueSize = sHud.getMaxUpdatesPerSecond();
++        // CRITICAL FIX: Initialize service regardless of sHud state to prevent race condition
++        // sHud is set by MainActivity after service starts, so we must not exit early
++        // Use default queue size if sHud is not yet initialized
++        final int maxQueueSize = (null != sHud) ? sHud.getMaxUpdatesPerSecond() : 10;
+         mExecutor = new ThreadPoolExecutor(1, 1,
+                 0L, TimeUnit.MILLISECONDS,
+                 new LinkedBlockingQueue<>(maxQueueSize),

@@ -6,7 +6,7 @@
         <item quantity="other">%d active notifications:</item>
     </plurals>
     <!--    <string name="open_app" >Open app</string>-->
-    <string name="app_name" translatable="false">GoogleMaps HUD</string>
+    <string name="app_name" translatable="false">GarmAx_HUD</string>
     <string name="action_settings">Settings</string>
 
     <string name="notify_switch_detect">Detect</string>
