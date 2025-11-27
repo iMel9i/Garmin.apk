@@ -34,6 +34,8 @@ class GarminHudLite(private val context: Context) {
         // Не инициализируем Bluetooth сразу, чтобы избежать ошибок разрешений
     }
     
+    private var isConnecting = false
+    
     fun initBluetooth() {
         if (bt != null) return
         
@@ -43,6 +45,7 @@ class GarminHudLite(private val context: Context) {
             override fun onDeviceConnected(name: String, address: String) {
                 Log.d(TAG, "Connected: $name ($address)")
                 connected = true
+                isConnecting = false
                 connectedDeviceName = name
                 connectedDeviceAddress = address
                 onConnectionStateChanged?.invoke(true, name)
@@ -51,6 +54,7 @@ class GarminHudLite(private val context: Context) {
             override fun onDeviceDisconnected() {
                 Log.d(TAG, "Disconnected")
                 connected = false
+                isConnecting = false
                 connectedDeviceName = null
                 connectedDeviceAddress = null
                 onConnectionStateChanged?.invoke(false, null)
@@ -59,6 +63,7 @@ class GarminHudLite(private val context: Context) {
             override fun onDeviceConnectionFailed() {
                 Log.d(TAG, "Connection failed")
                 connected = false
+                isConnecting = false
                 connectedDeviceName = null
                 connectedDeviceAddress = null
                 onConnectionStateChanged?.invoke(false, null)
@@ -72,7 +77,13 @@ class GarminHudLite(private val context: Context) {
     }
     
     fun connectToDevice(address: String) {
+        if (isConnecting || isConnected()) {
+            Log.d(TAG, "Already connecting or connected, ignoring connect request")
+            return
+        }
+        
         initBluetooth()
+        isConnecting = true
         bt?.connect(address)
     }
     

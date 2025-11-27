@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "iMel9i.garminhud.lite.app-mergeDebugResources-12:/values-v16/values-v16.xml",
+            "outputFile": "iMel9i.garminhud.lite.app-mergeDebugResources-29:/values-v16/values-v16.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\mts88\\.gradle\\caches\\transforms-4\\84b76346648dd649d74032ce67ad38ee\\transformed\\core-1.3.1\\res\\values-v16\\values-v16.xml",
+                    "source": "C:\\Users\\mts88\\.gradle\\caches\\transforms-4\\3c19d647abddf55ccd6e97060b4e9a1b\\transformed\\core-1.12.0\\res\\values-v16\\values-v16.xml",
                     "from": {
                         "startLines": "2",
                         "startColumns": "4",
@@ -14,7 +14,7 @@
                     }
                 },
                 {
-                    "source": "C:\\Users\\mts88\\.gradle\\caches\\transforms-4\\df726c566ceb79c1dc59a3fb787883c7\\transformed\\appcompat-1.2.0\\res\\values-v16\\values-v16.xml",
+                    "source": "C:\\Users\\mts88\\.gradle\\caches\\transforms-4\\26b2f4dedca22b31489ff32dac6e8582\\transformed\\appcompat-1.6.1\\res\\values-v16\\values-v16.xml",
                     "from": {
                         "startLines": "2",
                         "startColumns": "4",

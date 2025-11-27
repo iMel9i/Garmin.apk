@@ -25,17 +25,21 @@ class MainActivity : AppCompatActivity() {
     private lateinit var statusText: TextView
     private lateinit var btnSelectHud: Button
     private lateinit var btnRestartHud: Button
+    private lateinit var btnDebug: Button
     private lateinit var switchTime: android.widget.Switch
     private lateinit var switchSpeed: android.widget.Switch
     private lateinit var switchManualSpeedLimit: android.widget.Switch
     private lateinit var layoutSpeedLimitControl: LinearLayout
     private lateinit var seekBarSpeedLimit: SeekBar
     private lateinit var textSpeedLimitValue: TextView
+    private lateinit var seekBarSpeedingThreshold: SeekBar
+    private lateinit var textSpeedingThresholdValue: TextView
     private lateinit var switchAutoBrightness: android.widget.Switch
     private lateinit var switchGmaps: android.widget.Switch
     private lateinit var switchService: android.widget.Switch
     
     private lateinit var hud: GarminHudLite
+    private var closeReceiver: android.content.BroadcastReceiver? = null
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,17 +48,34 @@ class MainActivity : AppCompatActivity() {
         statusText = findViewById(R.id.statusText)
         btnSelectHud = findViewById(R.id.btnSelectHud)
         btnRestartHud = findViewById(R.id.btnRestartHud)
+        btnDebug = findViewById(R.id.btnDebug)
         switchTime = findViewById(R.id.switchTime)
         switchSpeed = findViewById(R.id.switchSpeed)
         switchManualSpeedLimit = findViewById(R.id.switchManualSpeedLimit)
         layoutSpeedLimitControl = findViewById(R.id.layoutSpeedLimitControl)
         seekBarSpeedLimit = findViewById(R.id.seekBarSpeedLimit)
         textSpeedLimitValue = findViewById(R.id.textSpeedLimitValue)
+        seekBarSpeedingThreshold = findViewById(R.id.seekBarSpeedingThreshold)
+        textSpeedingThresholdValue = findViewById(R.id.textSpeedingThresholdValue)
         switchAutoBrightness = findViewById(R.id.switchAutoBrightness)
         switchGmaps = findViewById(R.id.switchGmaps)
         switchService = findViewById(R.id.switchService)
         
         hud = GarminHudLite(this)
+        
+        // Register broadcast receiver for app close
+        closeReceiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(context: android.content.Context?, intent: Intent?) {
+                if (intent?.action == "CLOSE_APP") {
+                    finish()
+                }
+            }
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(closeReceiver, android.content.IntentFilter("CLOSE_APP"), android.content.Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(closeReceiver, android.content.IntentFilter("CLOSE_APP"))
+        }
         
         loadPreferences()
         
@@ -100,12 +121,27 @@ class MainActivity : AppCompatActivity() {
             }
         })
         
+        seekBarSpeedingThreshold.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                textSpeedingThresholdValue.text = "+$progress км/ч"
+                if (fromUser) savePreferences()
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                savePreferences()
+            }
+        })
+        
+        btnDebug.setOnClickListener {
+            startActivity(Intent(this, DebugActivity::class.java))
+        }
+        
         switchGmaps.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
                 // Проверяем разрешение на доступ к уведомлениям
                 if (!isNotificationServiceEnabled()) {
                     // Просим пользователя предоставить доступ
-                    val message = "Для интеграции с навигацией необходим доступ к уведомлениям.\n\nПожалуйста, включите доступ для GHUD Lite в настройках."
+                    val message = "Для интеграции с навигацией необходим доступ к уведомлениям.\\n\\nПожалуйста, включите доступ для GHUD Lite в настройках."
                     android.app.AlertDialog.Builder(this)
                         .setTitle("Требуется доступ")
                         .setMessage(message)
@@ -182,6 +218,10 @@ class MainActivity : AppCompatActivity() {
         seekBarSpeedLimit.progress = speedLimit
         textSpeedLimitValue.text = "$speedLimit км/ч"
         
+        val speedingThreshold = prefs.getInt("speeding_threshold", 10)
+        seekBarSpeedingThreshold.progress = speedingThreshold
+        textSpeedingThresholdValue.text = "+$speedingThreshold км/ч"
+        
         switchAutoBrightness.isChecked = prefs.getBoolean("auto_brightness", true)
         switchGmaps.isChecked = prefs.getBoolean("gmaps_integration", false)
         switchService.isChecked = prefs.getBoolean("service_active", false)
@@ -194,6 +234,7 @@ class MainActivity : AppCompatActivity() {
             .putBoolean("show_speed", switchSpeed.isChecked)
             .putBoolean("manual_speed_limit_enabled", switchManualSpeedLimit.isChecked)
             .putInt("speed_limit", seekBarSpeedLimit.progress)
+            .putInt("speeding_threshold", seekBarSpeedingThreshold.progress)
             .putBoolean("auto_brightness", switchAutoBrightness.isChecked)
             .putBoolean("gmaps_integration", switchGmaps.isChecked)
             .putBoolean("service_active", switchService.isChecked)

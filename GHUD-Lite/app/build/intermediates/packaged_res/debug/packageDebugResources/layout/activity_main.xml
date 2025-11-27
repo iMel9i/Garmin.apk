@@ -104,6 +104,35 @@
                 android:gravity="end"/>
         </LinearLayout>
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="8dp"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Порог превышения:" />
+
+            <SeekBar
+                android:id="@+id/seekBarSpeedingThreshold"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="30"
+                android:progress="10" />
+
+            <TextView
+                android:id="@+id/textSpeedingThresholdValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="+10 км/ч"
+                android:minWidth="70dp"
+                android:gravity="end"/>
+        </LinearLayout>
+
         <Switch
             android:id="@+id/switchAutoBrightness"
             android:layout_width="match_parent"
@@ -144,6 +173,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Перезагрузить HUD"
+        android:textSize="16sp"
+        android:layout_marginBottom="12dp" />
+
+    <Button
+        android:id="@+id/btnDebug"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🔍 Debug Information"
         android:textSize="16sp" />
 
 </LinearLayout>

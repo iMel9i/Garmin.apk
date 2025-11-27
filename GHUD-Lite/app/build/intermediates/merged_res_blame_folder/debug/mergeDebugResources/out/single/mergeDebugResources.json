@@ -1,6 +1,22 @@
 [
     {
-        "merged": "iMel9i.garminhud.lite.app-debug-14:/layout_activity_main.xml.flat",
-        "source": "iMel9i.garminhud.lite.app-main-16:/layout/activity_main.xml"
+        "merged": "iMel9i.garminhud.lite.app-debug-31:/layout_dialog_edit_app.xml.flat",
+        "source": "iMel9i.garminhud.lite.app-main-33:/layout/dialog_edit_app.xml"
+    },
+    {
+        "merged": "iMel9i.garminhud.lite.app-debug-31:/layout_activity_main.xml.flat",
+        "source": "iMel9i.garminhud.lite.app-main-33:/layout/activity_main.xml"
+    },
+    {
+        "merged": "iMel9i.garminhud.lite.app-debug-31:/layout_activity_app_settings.xml.flat",
+        "source": "iMel9i.garminhud.lite.app-main-33:/layout/activity_app_settings.xml"
+    },
+    {
+        "merged": "iMel9i.garminhud.lite.app-debug-31:/layout_activity_debug.xml.flat",
+        "source": "iMel9i.garminhud.lite.app-main-33:/layout/activity_debug.xml"
+    },
+    {
+        "merged": "iMel9i.garminhud.lite.app-debug-31:/layout_item_app_config.xml.flat",
+        "source": "iMel9i.garminhud.lite.app-main-33:/layout/item_app_config.xml"
     }
 ]

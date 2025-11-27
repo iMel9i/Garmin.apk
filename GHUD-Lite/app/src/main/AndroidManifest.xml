@@ -29,10 +29,20 @@
         </activity>
 
         <activity android:name="app.akexorcist.bluetoothspp.DeviceList" />
+        
+        <activity 
+            android:name=".DebugActivity"
+            android:label="Debug Information"
+            android:exported="false" />
+        
+        <activity 
+            android:name=".AppSettingsActivity"
+            android:label="App Settings"
+            android:exported="false" />
 
         <service
             android:name=".HudService"
-            android:foregroundServiceType="location"
+            android:foregroundServiceType="location|connectedDevice"
             android:exported="false" />
 
         <service

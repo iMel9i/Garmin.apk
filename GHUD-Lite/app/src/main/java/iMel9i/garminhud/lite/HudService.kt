@@ -34,6 +34,43 @@ class HudService : Service(), LocationListener {
         private const val RECONNECT_DELAY_MS = 5000L
         private const val OK_DISPLAY_DURATION_MS = 2000L
         private const val ACTION_STOP_SERVICE = "STOP_SERVICE"
+        
+        // Debug data for UI
+        data class OsmDebugData(
+            var lastQuery: String = "",
+            var lastResponse: String = "",
+            var currentSpeedLimit: Int? = null,
+            var camerasFound: Int = 0,
+            var nearestCameraDistance: Int? = null,
+            var lastUpdateTime: String = "",
+            var lastLocation: String = ""
+        )
+        
+        data class NavigationDebugData(
+            var packageName: String = "",
+            var title: String = "",
+            var text: String = "",
+            var bigText: String = "",
+            var parsedInstruction: String = "",
+            var parsedDistance: String = "",
+            var parsedEta: String = "",
+            var lastUpdateTime: String = ""
+        )
+        
+        data class HudDebugData(
+            var lastCommand: String = "",
+            var currentSpeed: Int = 0,
+            var displayedSpeedLimit: Int? = null,
+            var showingSpeedingIcon: Boolean = false,
+            var showingCameraIcon: Boolean = false,
+            var currentDirection: String = "",
+            var currentDistance: String = "",
+            var lastUpdateTime: String = ""
+        )
+        
+        val osmDebug = OsmDebugData()
+        val navDebug = NavigationDebugData()
+        val hudDebug = HudDebugData()
     }
     
     private lateinit var hud: GarminHudLite
@@ -70,7 +107,16 @@ class HudService : Service(), LocationListener {
         isServiceRunning = true
         
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, createNotification("Инициализация..."))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                NOTIFICATION_ID, 
+                createNotification("Инициализация..."),
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION or 
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, createNotification("Инициализация..."))
+        }
         
         hud = GarminHudLite(this)
         hud.onConnectionStateChanged = { connected, deviceName ->
@@ -253,6 +299,7 @@ class HudService : Service(), LocationListener {
             
             val manualLimitEnabled = prefs.getBoolean("manual_speed_limit_enabled", false)
             val manualLimit = prefs.getInt("speed_limit", 71)
+            val speedingThreshold = prefs.getInt("speeding_threshold", 10) // Порог превышения (по умолчанию +10 км/ч)
             
             // Priority: OSM -> Manual -> Default (71)
             // If OSM limit is available, use it. Otherwise fallback to manual or default.
@@ -261,8 +308,8 @@ class HudService : Service(), LocationListener {
             // Show limit if speed >= limit (as before, to keep "display as it is now")
             val showLimit = speedKmh >= effectiveLimit
             
-            // Show speeding icon if speed >= limit + 10
-            val isSpeeding = speedKmh >= (effectiveLimit + 10)
+            // Show speeding icon if speed >= limit + threshold
+            val isSpeeding = speedKmh >= (effectiveLimit + speedingThreshold)
             
             val showCamera = distanceToCamera != null
             
@@ -274,21 +321,38 @@ class HudService : Service(), LocationListener {
                 showCameraIcon = showCamera
             )
             
+            // Update debug data
+            hudDebug.currentSpeed = speedKmh
+            hudDebug.displayedSpeedLimit = if (showLimit) effectiveLimit else null
+            hudDebug.showingSpeedingIcon = isSpeeding
+            hudDebug.showingCameraIcon = showCamera
+            hudDebug.lastCommand = "Speed: $speedKmh km/h, Limit: ${if (showLimit) effectiveLimit else "none"}, Speeding: $isSpeeding, Camera: $showCamera"
+            hudDebug.lastUpdateTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+            
+            // Если есть камера, показываем расстояние вместо времени
             if (showCamera && distanceToCamera != null) {
                 hud.setDistance(distanceToCamera!!, 2) // meters
+                hudDebug.currentDistance = "${distanceToCamera}m"
             } else {
                 hud.clearDistance()
+                hudDebug.currentDistance = ""
             }
         }
     }
     
     private fun updateOsmData(location: Location) {
+        val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+        osmDebug.lastLocation = String.format("%.6f, %.6f", location.latitude, location.longitude)
+        osmDebug.lastUpdateTime = timeFormat.format(Date())
+        
         osmClient.getSpeedLimit(location.latitude, location.longitude) { limit ->
             currentOsmSpeedLimit = limit
+            osmDebug.currentSpeedLimit = limit
         }
         
         osmClient.getCameras(location.latitude, location.longitude, 1000) { cameras ->
             nearbyCameras = cameras
+            osmDebug.camerasFound = cameras.size
         }
     }
     
@@ -304,7 +368,9 @@ class HudService : Service(), LocationListener {
             }
         }
         
-        distanceToCamera = if (minDist != null && minDist <= 100) minDist.toInt() else null
+        // Показываем предупреждение о камере если расстояние <= 300м (было 100м)
+        distanceToCamera = if (minDist != null && minDist <= 300) minDist.toInt() else null
+        osmDebug.nearestCameraDistance = distanceToCamera
     }
     
     private fun parseDirection(instruction: String?): Int {
@@ -347,7 +413,8 @@ class HudService : Service(), LocationListener {
     override fun onLocationChanged(location: Location) {
         currentSpeed = location.speed
         
-        if (lastOsmUpdateLocation == null || location.distanceTo(lastOsmUpdateLocation) > OSM_UPDATE_DISTANCE_METERS) {
+        val lastLoc = lastOsmUpdateLocation
+        if (lastLoc == null || location.distanceTo(lastLoc) > OSM_UPDATE_DISTANCE_METERS) {
             lastOsmUpdateLocation = location
             updateOsmData(location)
         }
@@ -401,6 +468,12 @@ class HudService : Service(), LocationListener {
         if (intent?.action == "RESTART_HUD") {
             restartHud()
         } else if (intent?.action == ACTION_STOP_SERVICE) {
+            // Broadcast to close MainActivity
+            val closeIntent = Intent("CLOSE_APP")
+            closeIntent.setPackage(packageName)
+            sendBroadcast(closeIntent)
+            
+            // Stop service
             stopSelf()
         }
         return START_STICKY

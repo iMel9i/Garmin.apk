@@ -13,11 +13,6 @@ class NavigationNotificationListener : NotificationListenerService() {
     companion object {
         private const val TAG = "NavNotifListener"
         
-        // Пакеты приложений навигации
-        private const val PKG_GOOGLE_MAPS = "com.google.android.apps.maps"
-        private const val PKG_YANDEX_MAPS = "ru.yandex.yandexmaps"
-        private const val PKG_YANDEX_NAVI = "ru.yandex.yandexnavi"
-        
         var instance: NavigationNotificationListener? = null
         var onNavigationUpdate: ((NavigationData) -> Unit)? = null
     }
@@ -32,9 +27,12 @@ class NavigationNotificationListener : NotificationListenerService() {
         val isNavigating: Boolean = false
     )
     
+    private lateinit var configManager: AppConfigManager
+    
     override fun onCreate() {
         super.onCreate()
         instance = this
+        configManager = AppConfigManager(this)
         Log.d(TAG, "Navigation notification listener created")
     }
     
@@ -46,76 +44,79 @@ class NavigationNotificationListener : NotificationListenerService() {
     
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         val packageName = sbn.packageName
+        val config = configManager.getConfigs().find { it.packageName == packageName && it.enabled }
         
-        // Проверяем, является ли это уведомлением от навигационного приложения
-        if (packageName in listOf(PKG_GOOGLE_MAPS, PKG_YANDEX_MAPS, PKG_YANDEX_NAVI)) {
-            parseNotification(sbn)
+        if (config != null) {
+            parseNotification(sbn, config)
         }
     }
     
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
         val packageName = sbn.packageName
+        val config = configManager.getConfigs().find { it.packageName == packageName && it.enabled }
         
-        if (packageName in listOf(PKG_GOOGLE_MAPS, PKG_YANDEX_MAPS, PKG_YANDEX_NAVI)) {
+        if (config != null) {
             Log.d(TAG, "Navigation notification removed from: $packageName")
             // Сообщаем, что навигация завершена
             onNavigationUpdate?.invoke(NavigationData(isNavigating = false))
         }
     }
     
-    private fun parseNotification(sbn: StatusBarNotification) {
+    private fun parseNotification(sbn: StatusBarNotification, config: AppConfigManager.AppConfig) {
         val notification = sbn.notification
         val extras = notification.extras
         
-        val title = extras.getCharSequence("android.title")?.toString()
-        val text = extras.getCharSequence("android.text")?.toString()
-        val bigText = extras.getCharSequence("android.bigText")?.toString()
+        // Extract fields based on config
+        // We look for keys "title", "text", "bigText" in the config fields map
+        // If not found, we use default android keys
+        val titleKey = config.fields["title"] ?: "android.title"
+        val textKey = config.fields["text"] ?: "android.text"
+        val bigTextKey = config.fields["bigText"] ?: "android.bigText"
+        
+        val title = extras.getCharSequence(titleKey)?.toString()
+        val text = extras.getCharSequence(textKey)?.toString()
+        val bigText = extras.getCharSequence(bigTextKey)?.toString()
         
         Log.d(TAG, "Notification from ${sbn.packageName}")
-        Log.d(TAG, "  Title: $title")
-        Log.d(TAG, "  Text: $text")
-        Log.d(TAG, "  BigText: $bigText")
+        Log.d(TAG, "  Title ($titleKey): $title")
+        Log.d(TAG, "  Text ($textKey): $text")
+        Log.d(TAG, "  BigText ($bigTextKey): $bigText")
         
-        // Парсинг зависит от приложения
-        when (sbn.packageName) {
-            PKG_GOOGLE_MAPS -> parseGoogleMapsNotification(title, text, bigText)
-            PKG_YANDEX_MAPS, PKG_YANDEX_NAVI -> parseYandexNotification(title, text, bigText)
-        }
-    }
-    
-    private fun parseGoogleMapsNotification(title: String?, text: String?, bigText: String?) {
-        // Примерный формат Google Maps:
-        // Title: "In 500 m, turn left"
-        // Text: "10 min (3.5 km)"
+        // Update debug data
+        HudService.navDebug.packageName = sbn.packageName
+        HudService.navDebug.title = title ?: ""
+        HudService.navDebug.text = text ?: ""
+        HudService.navDebug.bigText = bigText ?: ""
+        HudService.navDebug.lastUpdateTime = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
         
-        if (title == null && text == null) return
+        // Generic parsing logic
+        // 1. Instruction is usually in title
+        // 2. Distance can be in title (e.g. "In 500m...") or text
+        // 3. ETA is usually in text
+        
+        val instruction = title ?: text
+        
+        // Try to find distance in title first, then text, then bigText
+        val distance = extractDistance(title) ?: extractDistance(text) ?: extractDistance(bigText)
+        
+        // ETA is usually the rest of the text
+        val eta = text
+        
+        if (instruction == null && distance == null) return
         
         val navData = NavigationData(
-            instruction = title,
-            distance = extractDistance(title),
-            eta = text,
+            instruction = instruction,
+            distance = distance,
+            eta = eta,
             isNavigating = true
         )
         
-        Log.d(TAG, "Google Maps navigation: $navData")
-        onNavigationUpdate?.invoke(navData)
-    }
-    
-    private fun parseYandexNotification(title: String?, text: String?, bigText: String?) {
-        // Примерный формат Yandex:
-        // Title: "Через 500 м поверните налево"
-        // Text: "10 мин, 3.5 км"
+        // Update debug data for parsed values
+        HudService.navDebug.parsedInstruction = navData.instruction ?: ""
+        HudService.navDebug.parsedDistance = navData.distance ?: ""
+        HudService.navDebug.parsedEta = navData.eta ?: ""
         
-        if (title == null && text == null) return
-        
-        val navData = NavigationData(
-            instruction = title,
-            distance = extractDistance(title),
-            eta = text,
-            isNavigating = true
-        )
-        
-        Log.d(TAG, "Yandex navigation: $navData")
+        Log.d(TAG, "Parsed navigation data: $navData")
         onNavigationUpdate?.invoke(navData)
     }
     
@@ -123,7 +124,8 @@ class NavigationNotificationListener : NotificationListenerService() {
         if (text == null) return null
         
         // Ищем паттерны: "500 m", "500 м", "1.5 km", "1.5 км"
-        val distanceRegex = """(\d+(?:\.\d+)?)\s*(m|м|km|км)""".toRegex(RegexOption.IGNORE_CASE)
+        // Added support for comma/dot decimal separator
+        val distanceRegex = """(\d+(?:[.,]\d+)?)\s*(m|м|km|км)""".toRegex(RegexOption.IGNORE_CASE)
         val match = distanceRegex.find(text)
         
         return match?.value
