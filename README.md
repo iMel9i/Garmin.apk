@@ -1,6 +1,49 @@
 # Garminuino
-There has two sub-project use GarminHUD as:
-1. an app, Google Map HUD  (Android App+GarminHUD).  
+
+## 🆕 GHUD Lite - Modern Navigation HUD with OpenStreetMap Integration
+
+**Latest Update: November 2025** - Fully functional new application with advanced features!
+
+### ✨ Key Features:
+- **📱 Multi-Navigator Support**: Works with Yandex Maps, Yandex Navigator, Google Maps, and other navigation apps
+- **🗺️ OpenStreetMap Integration**: 
+  - Real-time speed limit display from OpenStreetMap data
+  - Speed limit violation warnings with visual indicators
+  - Camera location warnings (displays when within 100m of cameras)
+  - Distance to camera display
+- **🎯 Smart Navigation Display**:
+  - Turn-by-turn navigation arrows
+  - Distance to next maneuver (auto-converts to km for distances >1000m)
+  - Estimated time of arrival (ETA)
+  - Current speed display
+- **⚙️ Advanced Settings**:
+  - Manual speed limit override
+  - Auto-brightness control
+  - Time display customization
+  - Bluetooth auto-connection
+  - Service toggle from notifications
+- **🔔 Notification Integration**: Parses navigation data from app notifications
+- **📍 GPS Status Indicators**: Real-time GPS connection status on HUD
+
+### 📂 Project Location:
+`ghud-lite/` - Modern Kotlin-based Android application
+
+### 🚀 Status: **FULLY WORKING** ✅
+All features implemented and tested. Application successfully builds and runs on Android devices.
+
+---
+
+## Classic Projects
+
+There are three sub-projects using GarminHUD:
+
+1. **GHUD Lite** (NEW - Android App + GarminHUD + OpenStreetMap) - **RECOMMENDED**
+   * Modern Kotlin implementation
+   * OpenStreetMap integration for speed limits and cameras
+   * Multi-navigator support (Yandex, Google Maps, etc.)
+   * Enhanced UI and notification controls
+   
+2. **Google Map HUD** (Android App + GarminHUD) - Legacy Version
  * [Downloading newest release App here.](https://github.com/skyforcetw/Garminuino/releases)
  * [Further Information for Android App.](https://github.com/skyforcetw/Garminuino/blob/master/GoogleMaps_HUD/README.md)  
    * [Install.](https://github.com/skyforcetw/Garminuino/blob/master/GoogleMaps_HUD/INSTALL.md)  
@@ -12,7 +55,7 @@ There has two sub-project use GarminHUD as:
    * [2021-08-25 v0.8.9](https://github.com/skyforcetw/Garminuino/files/7044189/gmaps_hud-release_v0.8.9.zip)
 Add support for google maps go navigation.
  
-2. a speedometer HUD  (Arduino+GarminHUD, STOP MAINTAIN)
+3. **Speedometer HUD** (Arduino + GarminHUD, STOP MAINTAIN)
 
 
 ***
@@ -74,9 +117,10 @@ Android App: Google Map HUD
 ***
 ### Folder Structure
     .
+    ├── ghud-lite                   # NEW: Modern Kotlin-based HUD with OpenStreetMap integration
     ├── GoogleMap_Arrow_Recognize   # Arrow Recognize Experimental Project for Visual Studio C++
-    ├── GoogleMaps_HUD              # Pure Android App based Google Maps HUD
-    ├── navigation HUD              # Arduino based Googoogle Maps HUD (deprecated)
+    ├── GoogleMaps_HUD              # Pure Android App based Google Maps HUD (Legacy)
+    ├── navigation HUD              # Arduino based Google Maps HUD (deprecated)
     ├── pics                        # Some pictures for README usage
     └── speedometer HUD             # Arduino based Speedmeter with Garmin HUD
 ***
