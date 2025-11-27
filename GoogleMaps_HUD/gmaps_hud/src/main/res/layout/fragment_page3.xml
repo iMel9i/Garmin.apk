@@ -202,5 +202,37 @@
             android:text="@string/layout_element_darkmode_man"
             android:textSize="@dimen/option_text_size" />
 
+        <View
+            android:layout_width="fill_parent"
+            android:layout_height="2dip"
+            android:background="@color/horizontal_line" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:paddingTop="@dimen/option_padding_top"
+            android:text="Yandex Navigator Debug"
+            android:textSize="@dimen/option_title_size" />
+
+        <Button
+            android:id="@+id/btnTestHud"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Запустить тест HUD"
+            android:layout_marginTop="10dp" />
+
+        <TextView
+            android:id="@+id/yandexDebugText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:padding="10dp"
+           android:text="Waiting for Yandex Navigator data..."
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:background="#222222" />
+
+
     </LinearLayout>
 </ScrollView>

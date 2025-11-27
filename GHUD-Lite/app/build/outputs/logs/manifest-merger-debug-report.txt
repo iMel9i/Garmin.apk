@@ -1,0 +1,233 @@
+-- Merging decision tree log ---
+manifest
+ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:2:1-49:12
+INJECTED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:2:1-49:12
+INJECTED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:2:1-49:12
+INJECTED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:2:1-49:12
+MERGED from [androidx.core:core-ktx:1.3.1] C:\Users\mts88\.gradle\caches\transforms-4\66523580b986f5ad8b9ee022d47b4d71\transformed\jetified-core-ktx-1.3.1\AndroidManifest.xml:2:1-9:12
+MERGED from [com.google.android.material:material:1.2.0] C:\Users\mts88\.gradle\caches\transforms-4\901e94c4f5a35f689ab545fd8686f5f0\transformed\material-1.2.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.constraintlayout:constraintlayout:2.0.0] C:\Users\mts88\.gradle\caches\transforms-4\7e280ad1947bc124a1bf71e11e3907c5\transformed\constraintlayout-2.0.0\AndroidManifest.xml:2:1-11:12
+MERGED from [androidx.appcompat:appcompat:1.2.0] C:\Users\mts88\.gradle\caches\transforms-4\df726c566ceb79c1dc59a3fb787883c7\transformed\appcompat-1.2.0\AndroidManifest.xml:17:1-24:12
+MERGED from [:bt-spp-library] C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\bt-spp-library\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:2:1-16:12
+MERGED from [androidx.viewpager2:viewpager2:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\86db1e52d020d3e9bb1f2701e8790617\transformed\jetified-viewpager2-1.0.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.fragment:fragment:1.1.0] C:\Users\mts88\.gradle\caches\transforms-4\d99275ad3e3a8dde941a6cc865cd2cca\transformed\fragment-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.appcompat:appcompat-resources:1.2.0] C:\Users\mts88\.gradle\caches\transforms-4\84a3d581a06b21f77f2dc7ef781e997a\transformed\jetified-appcompat-resources-1.2.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.drawerlayout:drawerlayout:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\cc3035cb714967883ef587dd4296db93\transformed\drawerlayout-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.1.0] C:\Users\mts88\.gradle\caches\transforms-4\ba519d537b0681e230e505ad8b357eb6\transformed\coordinatorlayout-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.transition:transition:1.2.0] C:\Users\mts88\.gradle\caches\transforms-4\9e11b68f1899b528b8bcc7c27ec8f873\transformed\transition-1.2.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\mts88\.gradle\caches\transforms-4\919243b6368f26fc2d595d696f3123aa\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\mts88\.gradle\caches\transforms-4\4b95d2004daa58a555691b9dd4b5585c\transformed\vectordrawable-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\0aec995bc056cea5e0d242e699ceff0c\transformed\viewpager-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.loader:loader:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\a168adfc3e64a7d1eea4742213afbe2d\transformed\loader-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.activity:activity:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\f458ce5cd1322ff525ee883f5f3d082f\transformed\jetified-activity-1.0.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.recyclerview:recyclerview:1.1.0] C:\Users\mts88\.gradle\caches\transforms-4\03b566b2bc65b41c0c9a0428ac3c68eb\transformed\recyclerview-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.customview:customview:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\9c5946e6db9952376c187b521e6948dc\transformed\customview-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.core:core:1.3.1] C:\Users\mts88\.gradle\caches\transforms-4\84b76346648dd649d74032ce67ad38ee\transformed\core-1.3.1\AndroidManifest.xml:17:1-26:12
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\21c335a415f5719a6a3a9543f19fd8c4\transformed\cursoradapter-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.cardview:cardview:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\118cc19620dea06dd18fafd26738158a\transformed\cardview-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.0] C:\Users\mts88\.gradle\caches\transforms-4\2a9228a3ad1548fa37335ff8556a8d5d\transformed\versionedparcelable-1.1.0\AndroidManifest.xml:17:1-27:12
+MERGED from [androidx.lifecycle:lifecycle-runtime:2.1.0] C:\Users\mts88\.gradle\caches\transforms-4\4e346ca915f582675125c8071e908fdf\transformed\lifecycle-runtime-2.1.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.1.0] C:\Users\mts88\.gradle\caches\transforms-4\2573096e12603cb2ce40d858a52e7332\transformed\lifecycle-viewmodel-2.1.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.savedstate:savedstate:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\599bc2f3f924e9c2c2a0bf23caba60b6\transformed\jetified-savedstate-1.0.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\5dbf879c705c80b3fadd3f55c42813d9\transformed\interpolator-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.0.0] C:\Users\mts88\.gradle\caches\transforms-4\e1f2755b048294e3820498f309384e72\transformed\lifecycle-livedata-2.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.0.0] C:\Users\mts88\.gradle\caches\transforms-4\2ffcc4b32fd2d2035a2e822a7e03a76f\transformed\lifecycle-livedata-core-2.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.arch.core:core-runtime:2.0.0] C:\Users\mts88\.gradle\caches\transforms-4\730696f95114e82c60c0801f4418ead9\transformed\core-runtime-2.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.annotation:annotation-experimental:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\02c8f58782a8f141555d4c37af01f3d7\transformed\jetified-annotation-experimental-1.0.0\AndroidManifest.xml:17:1-24:12
+	package
+		INJECTED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml
+	android:versionName
+		INJECTED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml
+	android:versionCode
+		INJECTED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml
+	xmlns:android
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:2:11-69
+uses-permission#android.permission.BLUETOOTH
+ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:5:5-68
+MERGED from [:bt-spp-library] C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\bt-spp-library\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:9:5-68
+MERGED from [:bt-spp-library] C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\bt-spp-library\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:9:5-68
+	android:name
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:5:22-65
+uses-permission#android.permission.BLUETOOTH_ADMIN
+ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:6:5-74
+MERGED from [:bt-spp-library] C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\bt-spp-library\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:10:5-74
+MERGED from [:bt-spp-library] C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\bt-spp-library\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:10:5-74
+	android:name
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:6:22-71
+uses-permission#android.permission.BLUETOOTH_CONNECT
+ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:7:5-76
+	android:name
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:7:22-73
+uses-permission#android.permission.BLUETOOTH_SCAN
+ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:8:5-73
+	android:name
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:8:22-70
+uses-permission#android.permission.ACCESS_FINE_LOCATION
+ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:9:5-79
+	android:name
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:9:22-76
+uses-permission#android.permission.ACCESS_COARSE_LOCATION
+ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:10:5-81
+	android:name
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:10:22-78
+uses-permission#android.permission.FOREGROUND_SERVICE
+ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:11:5-77
+	android:name
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:11:22-74
+uses-permission#android.permission.FOREGROUND_SERVICE_LOCATION
+ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:12:5-86
+	android:name
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:12:22-83
+uses-permission#android.permission.POST_NOTIFICATIONS
+ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:13:5-77
+	android:name
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:13:22-74
+uses-permission#android.permission.INTERNET
+ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:14:5-67
+	android:name
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:14:22-64
+application
+ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:16:5-47:19
+INJECTED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:16:5-47:19
+MERGED from [com.google.android.material:material:1.2.0] C:\Users\mts88\.gradle\caches\transforms-4\901e94c4f5a35f689ab545fd8686f5f0\transformed\material-1.2.0\AndroidManifest.xml:22:5-20
+MERGED from [com.google.android.material:material:1.2.0] C:\Users\mts88\.gradle\caches\transforms-4\901e94c4f5a35f689ab545fd8686f5f0\transformed\material-1.2.0\AndroidManifest.xml:22:5-20
+MERGED from [androidx.constraintlayout:constraintlayout:2.0.0] C:\Users\mts88\.gradle\caches\transforms-4\7e280ad1947bc124a1bf71e11e3907c5\transformed\constraintlayout-2.0.0\AndroidManifest.xml:9:5-20
+MERGED from [androidx.constraintlayout:constraintlayout:2.0.0] C:\Users\mts88\.gradle\caches\transforms-4\7e280ad1947bc124a1bf71e11e3907c5\transformed\constraintlayout-2.0.0\AndroidManifest.xml:9:5-20
+MERGED from [:bt-spp-library] C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\bt-spp-library\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:12:5-14:19
+MERGED from [:bt-spp-library] C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\bt-spp-library\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:12:5-14:19
+MERGED from [androidx.core:core:1.3.1] C:\Users\mts88\.gradle\caches\transforms-4\84b76346648dd649d74032ce67ad38ee\transformed\core-1.3.1\AndroidManifest.xml:24:5-89
+MERGED from [androidx.core:core:1.3.1] C:\Users\mts88\.gradle\caches\transforms-4\84b76346648dd649d74032ce67ad38ee\transformed\core-1.3.1\AndroidManifest.xml:24:5-89
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.0] C:\Users\mts88\.gradle\caches\transforms-4\2a9228a3ad1548fa37335ff8556a8d5d\transformed\versionedparcelable-1.1.0\AndroidManifest.xml:24:5-25:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.0] C:\Users\mts88\.gradle\caches\transforms-4\2a9228a3ad1548fa37335ff8556a8d5d\transformed\versionedparcelable-1.1.0\AndroidManifest.xml:24:5-25:19
+	android:extractNativeLibs
+		INJECTED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml
+	android:appComponentFactory
+		ADDED from [androidx.core:core:1.3.1] C:\Users\mts88\.gradle\caches\transforms-4\84b76346648dd649d74032ce67ad38ee\transformed\core-1.3.1\AndroidManifest.xml:24:18-86
+	android:label
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:19:9-41
+	android:icon
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:18:9-56
+	android:allowBackup
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:17:9-35
+	android:theme
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:20:9-67
+activity#iMel9i.garminhud.lite.MainActivity
+ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:22:9-29:20
+	android:exported
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:24:13-36
+	android:name
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:23:13-41
+intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
+ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:25:13-28:29
+action#android.intent.action.MAIN
+ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:26:17-69
+	android:name
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:26:25-66
+category#android.intent.category.LAUNCHER
+ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:27:17-77
+	android:name
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:27:27-74
+activity#app.akexorcist.bluetoothspp.DeviceList
+ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:31:9-75
+	android:name
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:31:19-72
+service#iMel9i.garminhud.lite.HudService
+ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:33:9-36:40
+	android:exported
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:36:13-37
+	android:foregroundServiceType
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:35:13-53
+	android:name
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:34:13-39
+service#iMel9i.garminhud.lite.NavigationNotificationListener
+ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:38:9-45:19
+	android:exported
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:41:13-36
+	android:permission
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:40:13-87
+	android:name
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:39:13-59
+intent-filter#action:name:android.service.notification.NotificationListenerService
+ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:42:13-44:29
+action#android.service.notification.NotificationListenerService
+ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:43:17-99
+	android:name
+		ADDED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:43:25-96
+uses-sdk
+INJECTED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml
+INJECTED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml
+MERGED from [androidx.core:core-ktx:1.3.1] C:\Users\mts88\.gradle\caches\transforms-4\66523580b986f5ad8b9ee022d47b4d71\transformed\jetified-core-ktx-1.3.1\AndroidManifest.xml:5:5-7:41
+MERGED from [androidx.core:core-ktx:1.3.1] C:\Users\mts88\.gradle\caches\transforms-4\66523580b986f5ad8b9ee022d47b4d71\transformed\jetified-core-ktx-1.3.1\AndroidManifest.xml:5:5-7:41
+MERGED from [com.google.android.material:material:1.2.0] C:\Users\mts88\.gradle\caches\transforms-4\901e94c4f5a35f689ab545fd8686f5f0\transformed\material-1.2.0\AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.material:material:1.2.0] C:\Users\mts88\.gradle\caches\transforms-4\901e94c4f5a35f689ab545fd8686f5f0\transformed\material-1.2.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.constraintlayout:constraintlayout:2.0.0] C:\Users\mts88\.gradle\caches\transforms-4\7e280ad1947bc124a1bf71e11e3907c5\transformed\constraintlayout-2.0.0\AndroidManifest.xml:5:5-7:41
+MERGED from [androidx.constraintlayout:constraintlayout:2.0.0] C:\Users\mts88\.gradle\caches\transforms-4\7e280ad1947bc124a1bf71e11e3907c5\transformed\constraintlayout-2.0.0\AndroidManifest.xml:5:5-7:41
+MERGED from [androidx.appcompat:appcompat:1.2.0] C:\Users\mts88\.gradle\caches\transforms-4\df726c566ceb79c1dc59a3fb787883c7\transformed\appcompat-1.2.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.appcompat:appcompat:1.2.0] C:\Users\mts88\.gradle\caches\transforms-4\df726c566ceb79c1dc59a3fb787883c7\transformed\appcompat-1.2.0\AndroidManifest.xml:20:5-22:41
+MERGED from [:bt-spp-library] C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\bt-spp-library\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:7:5-43
+MERGED from [:bt-spp-library] C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\bt-spp-library\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:7:5-43
+MERGED from [androidx.viewpager2:viewpager2:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\86db1e52d020d3e9bb1f2701e8790617\transformed\jetified-viewpager2-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.viewpager2:viewpager2:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\86db1e52d020d3e9bb1f2701e8790617\transformed\jetified-viewpager2-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.fragment:fragment:1.1.0] C:\Users\mts88\.gradle\caches\transforms-4\d99275ad3e3a8dde941a6cc865cd2cca\transformed\fragment-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.fragment:fragment:1.1.0] C:\Users\mts88\.gradle\caches\transforms-4\d99275ad3e3a8dde941a6cc865cd2cca\transformed\fragment-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.appcompat:appcompat-resources:1.2.0] C:\Users\mts88\.gradle\caches\transforms-4\84a3d581a06b21f77f2dc7ef781e997a\transformed\jetified-appcompat-resources-1.2.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.appcompat:appcompat-resources:1.2.0] C:\Users\mts88\.gradle\caches\transforms-4\84a3d581a06b21f77f2dc7ef781e997a\transformed\jetified-appcompat-resources-1.2.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.drawerlayout:drawerlayout:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\cc3035cb714967883ef587dd4296db93\transformed\drawerlayout-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.drawerlayout:drawerlayout:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\cc3035cb714967883ef587dd4296db93\transformed\drawerlayout-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.1.0] C:\Users\mts88\.gradle\caches\transforms-4\ba519d537b0681e230e505ad8b357eb6\transformed\coordinatorlayout-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.1.0] C:\Users\mts88\.gradle\caches\transforms-4\ba519d537b0681e230e505ad8b357eb6\transformed\coordinatorlayout-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.transition:transition:1.2.0] C:\Users\mts88\.gradle\caches\transforms-4\9e11b68f1899b528b8bcc7c27ec8f873\transformed\transition-1.2.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.transition:transition:1.2.0] C:\Users\mts88\.gradle\caches\transforms-4\9e11b68f1899b528b8bcc7c27ec8f873\transformed\transition-1.2.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\mts88\.gradle\caches\transforms-4\919243b6368f26fc2d595d696f3123aa\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\mts88\.gradle\caches\transforms-4\919243b6368f26fc2d595d696f3123aa\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\mts88\.gradle\caches\transforms-4\4b95d2004daa58a555691b9dd4b5585c\transformed\vectordrawable-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\mts88\.gradle\caches\transforms-4\4b95d2004daa58a555691b9dd4b5585c\transformed\vectordrawable-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\0aec995bc056cea5e0d242e699ceff0c\transformed\viewpager-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\0aec995bc056cea5e0d242e699ceff0c\transformed\viewpager-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.loader:loader:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\a168adfc3e64a7d1eea4742213afbe2d\transformed\loader-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.loader:loader:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\a168adfc3e64a7d1eea4742213afbe2d\transformed\loader-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\f458ce5cd1322ff525ee883f5f3d082f\transformed\jetified-activity-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.activity:activity:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\f458ce5cd1322ff525ee883f5f3d082f\transformed\jetified-activity-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.recyclerview:recyclerview:1.1.0] C:\Users\mts88\.gradle\caches\transforms-4\03b566b2bc65b41c0c9a0428ac3c68eb\transformed\recyclerview-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.recyclerview:recyclerview:1.1.0] C:\Users\mts88\.gradle\caches\transforms-4\03b566b2bc65b41c0c9a0428ac3c68eb\transformed\recyclerview-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.customview:customview:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\9c5946e6db9952376c187b521e6948dc\transformed\customview-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.customview:customview:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\9c5946e6db9952376c187b521e6948dc\transformed\customview-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.core:core:1.3.1] C:\Users\mts88\.gradle\caches\transforms-4\84b76346648dd649d74032ce67ad38ee\transformed\core-1.3.1\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.core:core:1.3.1] C:\Users\mts88\.gradle\caches\transforms-4\84b76346648dd649d74032ce67ad38ee\transformed\core-1.3.1\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\21c335a415f5719a6a3a9543f19fd8c4\transformed\cursoradapter-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\21c335a415f5719a6a3a9543f19fd8c4\transformed\cursoradapter-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.cardview:cardview:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\118cc19620dea06dd18fafd26738158a\transformed\cardview-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.cardview:cardview:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\118cc19620dea06dd18fafd26738158a\transformed\cardview-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.0] C:\Users\mts88\.gradle\caches\transforms-4\2a9228a3ad1548fa37335ff8556a8d5d\transformed\versionedparcelable-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.0] C:\Users\mts88\.gradle\caches\transforms-4\2a9228a3ad1548fa37335ff8556a8d5d\transformed\versionedparcelable-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.lifecycle:lifecycle-runtime:2.1.0] C:\Users\mts88\.gradle\caches\transforms-4\4e346ca915f582675125c8071e908fdf\transformed\lifecycle-runtime-2.1.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime:2.1.0] C:\Users\mts88\.gradle\caches\transforms-4\4e346ca915f582675125c8071e908fdf\transformed\lifecycle-runtime-2.1.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.1.0] C:\Users\mts88\.gradle\caches\transforms-4\2573096e12603cb2ce40d858a52e7332\transformed\lifecycle-viewmodel-2.1.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.1.0] C:\Users\mts88\.gradle\caches\transforms-4\2573096e12603cb2ce40d858a52e7332\transformed\lifecycle-viewmodel-2.1.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\599bc2f3f924e9c2c2a0bf23caba60b6\transformed\jetified-savedstate-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.savedstate:savedstate:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\599bc2f3f924e9c2c2a0bf23caba60b6\transformed\jetified-savedstate-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\5dbf879c705c80b3fadd3f55c42813d9\transformed\interpolator-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\5dbf879c705c80b3fadd3f55c42813d9\transformed\interpolator-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.0.0] C:\Users\mts88\.gradle\caches\transforms-4\e1f2755b048294e3820498f309384e72\transformed\lifecycle-livedata-2.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.0.0] C:\Users\mts88\.gradle\caches\transforms-4\e1f2755b048294e3820498f309384e72\transformed\lifecycle-livedata-2.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.0.0] C:\Users\mts88\.gradle\caches\transforms-4\2ffcc4b32fd2d2035a2e822a7e03a76f\transformed\lifecycle-livedata-core-2.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.0.0] C:\Users\mts88\.gradle\caches\transforms-4\2ffcc4b32fd2d2035a2e822a7e03a76f\transformed\lifecycle-livedata-core-2.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.arch.core:core-runtime:2.0.0] C:\Users\mts88\.gradle\caches\transforms-4\730696f95114e82c60c0801f4418ead9\transformed\core-runtime-2.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.arch.core:core-runtime:2.0.0] C:\Users\mts88\.gradle\caches\transforms-4\730696f95114e82c60c0801f4418ead9\transformed\core-runtime-2.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\02c8f58782a8f141555d4c37af01f3d7\transformed\jetified-annotation-experimental-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.annotation:annotation-experimental:1.0.0] C:\Users\mts88\.gradle\caches\transforms-4\02c8f58782a8f141555d4c37af01f3d7\transformed\jetified-annotation-experimental-1.0.0\AndroidManifest.xml:20:5-22:41
+	android:targetSdkVersion
+		INJECTED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml
+activity#app.akexorcist.bluetotohspp.library.DeviceList
+ADDED from [:bt-spp-library] C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\bt-spp-library\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:13:9-83
+	android:name
+		ADDED from [:bt-spp-library] C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\bt-spp-library\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:13:19-80
+uses-permission#android.permission.WRITE_EXTERNAL_STORAGE
+IMPLIED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:2:1-49:12 reason: app.akexorcist.bluetotohspp.library has a targetSdkVersion < 4
+uses-permission#android.permission.READ_PHONE_STATE
+IMPLIED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:2:1-49:12 reason: app.akexorcist.bluetotohspp.library has a targetSdkVersion < 4
+uses-permission#android.permission.READ_EXTERNAL_STORAGE
+IMPLIED from C:\Users\mts88\Documents\GHUD\Garmin.apk\GHUD-Lite\app\src\main\AndroidManifest.xml:2:1-49:12 reason: app.akexorcist.bluetotohspp.library requested WRITE_EXTERNAL_STORAGE

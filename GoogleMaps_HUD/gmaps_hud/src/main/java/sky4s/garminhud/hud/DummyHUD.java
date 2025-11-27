@@ -131,6 +131,11 @@ public class DummyHUD extends HUDAdapter {
     }
 
     @Override
+    public void sendRawByte(int b) {
+        log("SendRawByte: 0x" + Integer.toHexString(b));
+    }
+
+    @Override
     public void disconnect() {
         log("Disconnect");
     }

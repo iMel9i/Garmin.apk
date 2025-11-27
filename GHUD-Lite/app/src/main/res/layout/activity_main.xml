@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:gravity="center">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="GHUD Lite"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="24dp" />
+
+    <TextView
+        android:id="@+id/statusText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/status_disconnected"
+        android:textSize="16sp"
+        android:padding="12dp"
+        android:background="#E0E0E0"
+        android:gravity="center"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Инструкция:"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="1. Нажмите 'Выбрать HUD' и выберите устройство\n2. Нажмите 'Запустить сервис'\n3. На HUD будет отображаться время и скорость"
+        android:textSize="12sp"
+        android:lineSpacingExtra="4dp"
+        android:layout_marginBottom="16dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#F5F5F5"
+        android:padding="8dp"
+        android:layout_marginBottom="16dp">
+
+        <Switch
+            android:id="@+id/switchTime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Показывать время"
+            android:checked="true"
+            android:padding="8dp"/>
+
+        <Switch
+            android:id="@+id/switchSpeed"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Показывать скорость"
+            android:checked="true"
+            android:padding="8dp"/>
+
+        <Switch
+            android:id="@+id/switchManualSpeedLimit"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Ручной лимит скорости"
+            android:padding="8dp"/>
+
+        <LinearLayout
+            android:id="@+id/layoutSpeedLimitControl"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="8dp"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Лимит:" />
+
+            <SeekBar
+                android:id="@+id/seekBarSpeedLimit"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="150"
+                android:progress="71" />
+
+            <TextView
+                android:id="@+id/textSpeedLimitValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="71 км/ч"
+                android:minWidth="60dp"
+                android:gravity="end"/>
+        </LinearLayout>
+
+        <Switch
+            android:id="@+id/switchAutoBrightness"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Автояркость"
+            android:checked="true"
+            android:padding="8dp"/>
+
+        <Switch
+            android:id="@+id/switchGmaps"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Интеграция Google Maps / Яндекс"
+            android:checked="false"
+            android:padding="8dp"/>
+
+        <Switch
+            android:id="@+id/switchService"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Сервис активен"
+            android:checked="false"
+            android:padding="8dp"
+            android:textStyle="bold"/>
+
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btnSelectHud"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Выбрать HUD"
+        android:textSize="16sp"
+        android:layout_marginBottom="12dp" />
+
+    <Button
+        android:id="@+id/btnRestartHud"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Перезагрузить HUD"
+        android:textSize="16sp" />
+
+</LinearLayout>

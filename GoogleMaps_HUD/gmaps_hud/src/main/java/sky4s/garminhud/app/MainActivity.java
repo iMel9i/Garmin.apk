@@ -171,6 +171,11 @@ public class MainActivity extends AppCompatActivity {
     private PermissionManager permissionManager;
 
     // ========================================================================================
+    // Yandex Data Handler
+    // ========================================================================================
+    private YandexDataHandler yandexDataHandler;
+
+    // ========================================================================================
     private SharedPreferences mSharedPrefs;
     private SeekBar.OnSeekBarChangeListener mBrightnessSeekbarChangeListener = new SeekBar.OnSeekBarChangeListener() {
 
@@ -541,6 +546,12 @@ public class MainActivity extends AppCompatActivity {
 
         // Request all necessary runtime permissions at startup
         permissionManager.requestAllPermissions();
+
+        // ========================================================================================
+        // Yandex Navigator Data Handler
+        // ========================================================================================
+        yandexDataHandler = new YandexDataHandler(this);
+        yandexDataHandler.registerReceiver();
         // ========================================================================================
     }
 

@@ -38,14 +38,14 @@ public class BMWHUD extends HUDAdapter {
     private FutureTask<Boolean> mSendTask;
 
     public BMWHUD(Context context) {
-        if (DEBUG) Log.d(TAG, "Creating BMWHUD instance");
+        if (DEBUG)
+            Log.d(TAG, "Creating BMWHUD instance");
         mContext = context;
         mExecutor = Executors.newFixedThreadPool(1);
         mMsg = new BMWMessage();
         mSocket = BMWSocketConnection.getInstance(mContext);
 
-        WifiManager wifiManager =
-                (WifiManager) mContext.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        WifiManager wifiManager = (WifiManager) mContext.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         if (wifiManager.getWifiState() != WifiManager.WIFI_STATE_ENABLED) {
             Toast.makeText(mContext.getApplicationContext(),
                     mContext.getString(R.string.message_enable_wlan),
@@ -89,9 +89,11 @@ public class BMWHUD extends HUDAdapter {
             mUpdateCount = 0;
         }
         final boolean isSending = mSendTask != null && !mSendTask.isDone();
-        if (DEBUG) Log.d(TAG, "isSending: " + isSending);
+        if (DEBUG)
+            Log.d(TAG, "isSending: " + isSending);
         final boolean updatable = mUpdateCount < MAX_UPDATES_PER_SECOND && !isSending;
-        if (DEBUG) Log.d(TAG, "isUpdatable: " + updatable);
+        if (DEBUG)
+            Log.d(TAG, "isUpdatable: " + updatable);
         return updatable;
     }
 
@@ -103,7 +105,8 @@ public class BMWHUD extends HUDAdapter {
 
         try {
             boolean sendResult = mSendTask.get();
-            if (DEBUG) Log.d(TAG, "getSendResult: result: " + sendResult);
+            if (DEBUG)
+                Log.d(TAG, "getSendResult: result: " + sendResult);
             return sendResult;
         } catch (ExecutionException | InterruptedException e) {
             Log.e(TAG, "getSendResult: ", e);
@@ -113,7 +116,8 @@ public class BMWHUD extends HUDAdapter {
 
     @Override
     public void setTime(int nH, int nM, boolean bFlag, boolean bTraffic, boolean bColon, boolean bH) {
-        // function is called through SetCurrentTime, and only used for showing current time when idle
+        // function is called through SetCurrentTime, and only used for showing current
+        // time when idle
         // nH is expected to be 24-hour
         final boolean isAm = nH < 12;
         nH %= 12;
@@ -135,10 +139,12 @@ public class BMWHUD extends HUDAdapter {
             nH = (nH == 0) ? 12 : nH;
             suffix = isAm ? BMWMessage.TIME_SUFFIX_AM : BMWMessage.TIME_SUFFIX_PM;
         }
-        if (DEBUG) Log.d(TAG, "isShowETAEnabled: " + isShowETAEnabled());
+        if (DEBUG)
+            Log.d(TAG, "isShowETAEnabled: " + isShowETAEnabled());
         mMsg.setArrivalTime(nH, nM, suffix);
 
-        // enable separate indicator for traffic delay even though minutes delay isn't available
+        // enable separate indicator for traffic delay even though minutes delay isn't
+        // available
         mMsg.setTrafficDelay(bTraffic ? 1 : 0);
 
         sendMessage();
@@ -153,8 +159,9 @@ public class BMWHUD extends HUDAdapter {
 
     @Override
     public void setDistance(float nDist, eUnits unit) {
-        if (DEBUG) Log.d(TAG, "SetDistance: nDist: " + nDist +
-                ", unit: " + unit);
+        if (DEBUG)
+            Log.d(TAG, "SetDistance: nDist: " + nDist +
+                    ", unit: " + unit);
         double distToTurnMiles;
         switch (unit) {
             case Foot:
@@ -188,8 +195,9 @@ public class BMWHUD extends HUDAdapter {
 
     @Override
     public void setRemainingDistance(float nDist, eUnits unit) {
-        if (DEBUG) Log.d(TAG, "SetRemainingDistance: nDist: " + nDist +
-                ", unit: " + unit);
+        if (DEBUG)
+            Log.d(TAG, "SetRemainingDistance: nDist: " + nDist +
+                    ", unit: " + unit);
         double distToTurnMiles;
         switch (unit) {
             case Foot:
@@ -224,7 +232,8 @@ public class BMWHUD extends HUDAdapter {
     @Override
     public void setAlphabet(char a, char b, char c, char d) {
         // not supported
-        if (DEBUG) Log.w(TAG, "SetAlphabet: Not supported");
+        if (DEBUG)
+            Log.w(TAG, "SetAlphabet: Not supported");
     }
 
     @Override
@@ -365,7 +374,8 @@ public class BMWHUD extends HUDAdapter {
     @Override
     public void setSpeed(int nSpeed, boolean bIcon) {
         // not supported
-        if (DEBUG) Log.w(TAG, "SetSpeed: Not supported");
+        if (DEBUG)
+            Log.w(TAG, "SetSpeed: Not supported");
     }
 
     @Override
@@ -394,19 +404,27 @@ public class BMWHUD extends HUDAdapter {
     @Override
     public void setGpsLabel(boolean visible) {
         // not supported
-        if (DEBUG) Log.w(TAG, "SetGpsLabel: Not supported");
+        if (DEBUG)
+            Log.w(TAG, "SetGpsLabel: Not supported");
     }
 
     @Override
     public void setAutoBrightness() {
         // TODO: decode brightness control
-        if (DEBUG) Log.w(TAG, "SetAutoBrightness: Not implemented");
+        if (DEBUG)
+            Log.w(TAG, "SetAutoBrightness: Not implemented");
     }
 
     @Override
     public void setBrightness(int brightness) {
         // TODO: decode brightness control
-        if (DEBUG) Log.w(TAG, "SetBrightness: Not implemented");
+        if (DEBUG)
+            Log.w(TAG, "SetBrightness: Not implemented");
+    }
+
+    @Override
+    public void sendRawByte(int b) {
+        // Not supported for BMW HUD
     }
 
     @Override
@@ -434,7 +452,8 @@ public class BMWHUD extends HUDAdapter {
 
         mSendTask = new FutureTask<>(() -> {
             boolean ret = mSocket.send(mMsg.getBytes());
-            if (DEBUG) Log.d(TAG, "sendMessage: Sent message to HUD");
+            if (DEBUG)
+                Log.d(TAG, "sendMessage: Sent message to HUD");
             return ret;
         });
         mExecutor.execute(mSendTask);

@@ -1,0 +1,32 @@
+R_DEF: Internal format may change without notice
+local
+id btnRestartHud
+id btnSelectHud
+id layoutSpeedLimitControl
+id seekBarSpeedLimit
+id statusText
+id switchAutoBrightness
+id switchGmaps
+id switchManualSpeedLimit
+id switchService
+id switchSpeed
+id switchTime
+id textSpeedLimitValue
+layout activity_main
+string app_name
+string arrow_left
+string arrow_right
+string arrow_sharp_left
+string arrow_sharp_right
+string arrow_straight
+string bt_not_available
+string bt_not_enabled
+string clear
+string connect
+string disconnect
+string speed_50
+string speed_60
+string speed_90
+string status_connected
+string status_connecting
+string status_disconnected

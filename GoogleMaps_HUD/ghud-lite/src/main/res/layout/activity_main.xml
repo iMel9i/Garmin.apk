@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:gravity="center">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="GHUD Lite"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="24dp" />
+
+    <TextView
+        android:id="@+id/statusText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/status_disconnected"
+        android:textSize="16sp"
+        android:padding="12dp"
+        android:background="#E0E0E0"
+        android:gravity="center"
+        android:layout_marginBottom="32dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Инструкция:"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="1. Нажмите 'Выбрать HUD' и выберите устройство\n2. Нажмите 'Запустить сервис'\n3. На HUD будет отображаться время и скорость"
+        android:textSize="12sp"
+        android:lineSpacingExtra="4dp"
+        android:layout_marginBottom="24dp" />
+
+    <Button
+        android:id="@+id/btnSelectHud"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Выбрать HUD"
+        android:textSize="16sp"
+        android:layout_marginBottom="12dp" />
+
+    <Button
+        android:id="@+id/btnStartService"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Запустить сервис"
+        android:textSize="16sp"
+        android:layout_marginBottom="12dp" />
+
+    <Button
+        android:id="@+id/btnStopService"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Остановить сервис"
+        android:textSize="16sp" />
+
+</LinearLayout>

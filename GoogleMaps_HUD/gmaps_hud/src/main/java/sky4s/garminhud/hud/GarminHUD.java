@@ -499,6 +499,13 @@ public class GarminHUD extends HUDAdapter {
     }
 
     @Override
+    public void sendRawByte(int b) {
+        if (mBt != null && mBt.isServiceAvailable()) {
+            mBt.send(new byte[] { (byte) b }, false);
+        }
+    }
+
+    @Override
     public void disconnect() {
         if (DEBUG)
             Log.d(TAG, "disconnect()");

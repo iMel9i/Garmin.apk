@@ -60,6 +60,8 @@ public class NotificationMonitor extends NotificationListenerService {
     public static final String OSMAND_PACKAGE_NAME = "net.osmand";
     public static final String OSMAND_NOTIFICATION_GROUP_NAVIGATION = "NAVIGATION";
     public static final String SYGIC_PACKAGE_NAME = "com.sygic.aura";
+    public static final String YANDEX_MAPS_PACKAGE_NAME = "ru.yandex.maps";
+    public static final String YANDEX_NAVIGATOR_PACKAGE_NAME = "ru.yandex.yandexnavi";
 
     private static final String TAG = NotificationMonitor.class.getSimpleName();
     private static final int EVENT_UPDATE_CURRENT_NOS = 0;
@@ -69,7 +71,7 @@ public class NotificationMonitor extends NotificationListenerService {
     public static StatusBarNotification sPostedNotification;
     public static StatusBarNotification sRemovedNotification;
 
-    static HUDInterface sHud = null;
+    public static HUDInterface sHud = null;
 
     @SuppressLint("HandlerLeak")
     private Handler mMonitorHandler = new Handler() {
@@ -228,24 +230,17 @@ public class NotificationMonitor extends NotificationListenerService {
                         break;
 
                     case GOOGLE_MAPS_GO_PACKAGE_NAME:
-                        mNotifySource = 1;
-                        // mParseMethod = 0;
-                        // boolean parseResult = parseGmapsNotificationByExtras(notification);
-                        parseGmapsNotification(notification);
-                        break;
-                    /*
-                     * case OSMAND_PACKAGE_NAME:
-                     * parseOsmandNotification(notification);
-                     * break;
-                     * case SYGIC_PACKAGE_NAME:
-                     * parseSygicNotification(notification);
-                     * break;
-                     */
-                    default:
                         // String notifyMessage = "No gmaps' notification!?!?" + " (found: " +
                         // packageName + ")";
                         // mPostman.addStringExtra(getString(R.string.notify_msg), notifyMessage);
                         // mPostman.sendIntent2MainActivity();
+                        break;
+
+                    case YANDEX_MAPS_PACKAGE_NAME:
+                    case YANDEX_NAVIGATOR_PACKAGE_NAME:
+                        Log.i(TAG, "Yandex notification detected from " + packageName);
+                        mNotifySource = 2;
+                        parseYandexNotification(notification);
                         break;
                 }
             } else {
@@ -354,6 +349,73 @@ public class NotificationMonitor extends NotificationListenerService {
             mPostman.addBooleanExtra(getString(R.string.option_arrow_type), mArrowTypeV2);
         }
         mPostman.sendIntent2MainActivity();
+    }
+
+    /**
+     * Parse Yandex Maps / Yandex Navigator notification.
+     * Extracts distance, unit, ETA and road name from notification extras.
+     */
+    private boolean parseYandexNotification(Notification notification) {
+        if (notification == null) {
+            return false;
+        }
+        Bundle extras = notification.extras;
+        if (extras == null) {
+            return false;
+        }
+        Object titleObj = extras.get(Notification.EXTRA_TITLE);
+        Object textObj = extras.get(Notification.EXTRA_TEXT);
+        Object subTextObj = extras.get(Notification.EXTRA_SUB_TEXT);
+
+        String title = titleObj != null ? titleObj.toString() : null;
+        String text = textObj != null ? textObj.toString() : null;
+        String subText = subTextObj != null ? subTextObj.toString() : null;
+        // Some devices swap text/subText – fallback
+        if (subText == null) {
+            subText = text;
+        }
+
+        // Example title: "500 м – ул. Пушкина" or "2 км – просп. Мира"
+        if (title != null) {
+            String[] parts = title.split("[-–]");
+            if (parts.length > 0) {
+                String distancePart = parts[0].trim();
+                // Extract digits
+                StringBuilder num = new StringBuilder();
+                for (char c : distancePart.toCharArray()) {
+                    if (Character.isDigit(c)) {
+                        num.append(c);
+                    }
+                }
+                mDistanceNum = num.length() > 0 ? num.toString() : "-1";
+                // Determine unit
+                if (distancePart.contains("км")) {
+                    mDistanceUnit = "km";
+                } else {
+                    mDistanceUnit = "m";
+                }
+            }
+        }
+
+        // ETA – look for minutes in subText (e.g., "5 мин")
+        if (subText != null) {
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d+)\\s*мин").matcher(subText);
+            if (m.find()) {
+                mRemainingMinutes = m.group(1);
+            }
+        }
+
+        // Notify UI – reuse same keys as Google Maps for simplicity
+        mPostman.addBooleanExtra(getString(R.string.notify_catched), true);
+        mPostman.addBooleanExtra(getString(R.string.is_in_navigation), true);
+        mPostman.addStringExtra(getString(R.string.gmaps_notify_msg),
+                (title != null ? title : "") + (subText != null ? " " + subText : ""));
+        mPostman.sendIntent2MainActivity();
+
+        mIsNavigating = true;
+        Log.i(TAG,
+                "Yandex parsed – distance: " + mDistanceNum + mDistanceUnit + ", ETA: " + mRemainingMinutes + " мин");
+        return true;
     }
 
     private static boolean viewsHasActionsField(RemoteViews views) {

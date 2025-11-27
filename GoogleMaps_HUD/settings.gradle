@@ -1,1 +1,1 @@
-include ':gmaps_hud', ':bt-spp-library'
+include ':gmaps_hud', ':bt-spp-library', ':ghud-lite'
