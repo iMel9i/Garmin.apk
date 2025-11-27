@@ -79,26 +79,14 @@ class HudService : Service(), LocationListener {
     private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
     private var updateTimer: Timer? = null
     private val reconnectHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    private val okHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var isServiceRunning = false
-    private var isOkDisplayed = false
     private var isNavigating = false
     private var currentNavigationData: NavigationNotificationListener.NavigationData? = null
     
-    private val reconnectRunnable = object : Runnable {
-        override fun run() {
-            if (isServiceRunning && !hud.isConnected()) {
-                autoConnectToSavedDevice()
-                reconnectHandler.postDelayed(this, RECONNECT_DELAY_MS)
-            }
+    private val reconnectRunnable = Runnable {
+        if (isServiceRunning && !hud.isConnected()) {
+            autoConnectToSavedDevice()
         }
-    }
-    
-    private val clearOkRunnable = Runnable {
-        isOkDisplayed = false
-        hud.clear() // Clear the "OK" or whatever was shown
-        // Immediately update to show speed/time
-        updateHud()
     }
     
     override fun onCreate() {
@@ -107,15 +95,31 @@ class HudService : Service(), LocationListener {
         isServiceRunning = true
         
         createNotificationChannel()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        
+        val notification = createNotification("Инициализация...")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Android 12+
+            try {
+                startForeground(
+                    NOTIFICATION_ID, 
+                    notification,
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION or 
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to start foreground service with types", e)
+                startForeground(NOTIFICATION_ID, notification)
+            }
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // Android 10-11
             startForeground(
                 NOTIFICATION_ID, 
-                createNotification("Инициализация..."),
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION or 
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+                notification,
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
             )
         } else {
-            startForeground(NOTIFICATION_ID, createNotification("Инициализация..."))
+            // Android 9 and below
+            startForeground(NOTIFICATION_ID, notification)
         }
         
         hud = GarminHudLite(this)
@@ -124,26 +128,23 @@ class HudService : Service(), LocationListener {
                 updateNotification("Подключено: $deviceName")
                 saveDeviceInfo(hud.getConnectedDeviceName(), hud.getConnectedDeviceAddress())
                 
-                // Show OK (using checkmark or text if available, for now maybe just clear and wait?)
-                // Actually user said "OK appears", so maybe the HUD does it itself on connection?
-                // Or maybe we should send something?
-                // Let's assume we want to ensure it's clean and then show data.
-                // If the HUD shows "OK" by itself, we just wait.
-                
-                isOkDisplayed = true
-                okHandler.postDelayed(clearOkRunnable, OK_DISPLAY_DURATION_MS)
-                
-                startUpdates()
+                // Stop any pending reconnection attempts
                 reconnectHandler.removeCallbacks(reconnectRunnable)
                 
-                // Apply brightness setting on connection
+                // Immediately start updates
+                startUpdates()
                 applyBrightness()
+                
+                // Force an immediate update to clear "OK" or default state
+                updateHud()
                 
             } else {
                 updateNotification("Отключено. Попытка подключения...")
                 stopUpdates()
-                // Start reconnection loop
+                
+                // Start reconnection loop if service is still running
                 if (isServiceRunning) {
+                    reconnectHandler.removeCallbacks(reconnectRunnable) // Ensure we don't have multiple callbacks
                     reconnectHandler.postDelayed(reconnectRunnable, RECONNECT_DELAY_MS)
                 }
             }
@@ -237,7 +238,6 @@ class HudService : Service(), LocationListener {
     
     private fun updateHud() {
         if (!hud.isConnected()) return
-        if (isOkDisplayed) return // Don't update if showing OK
         
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val showTime = prefs.getBoolean("show_time", true)
@@ -495,7 +495,6 @@ class HudService : Service(), LocationListener {
         isServiceRunning = false
         stopUpdates()
         reconnectHandler.removeCallbacks(reconnectRunnable)
-        okHandler.removeCallbacks(clearOkRunnable)
         locationManager.removeUpdates(this)
         NavigationNotificationListener.onNavigationUpdate = null
         hud.disconnect()
