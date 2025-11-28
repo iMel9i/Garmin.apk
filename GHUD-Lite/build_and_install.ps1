@@ -58,19 +58,34 @@ if (-not (Test-Path $adbPath)) {
     exit 1
 }
 
-$devices = & $adbPath devices | Select-Object -Skip 1 | Where-Object { $_ -match '\tdevice$' }
+$deviceFound = $false
+$retries = 0
+$maxRetries = 30 # Wait up to 30 seconds
 
-if ($devices.Count -eq 0) {
-    Write-Host "Warning: No devices found" -ForegroundColor Yellow
-    Write-Host "Connect device via USB and enable USB Debugging" -ForegroundColor Yellow
+while (-not $deviceFound -and $retries -lt $maxRetries) {
+    $devices = & $adbPath devices
+    # Check if output contains a device (excluding the header "List of devices attached")
+    $deviceLines = $devices | Select-Object -Skip 1 | Where-Object { $_ -match '\tdevice$' }
     
-    $response = Read-Host "Continue installation (y/n)?"
+    if ($deviceLines) {
+        $deviceFound = $true
+        Write-Host "Device found!" -ForegroundColor Green
+    }
+    else {
+        Write-Host "Waiting for device... ($($maxRetries - $retries)s)" -ForegroundColor DarkYellow
+        Start-Sleep -Seconds 1
+        $retries++
+    }
+}
+
+if (-not $deviceFound) {
+    Write-Host "Warning: No devices found after waiting." -ForegroundColor Yellow
+    Write-Host "Connect device via USB and enable USB Debugging." -ForegroundColor Yellow
+    
+    $response = Read-Host "Continue installation anyway (y/n)?"
     if ($response -ne 'y') {
         exit 0
     }
-}
-else {
-    Write-Host "Device found" -ForegroundColor Green
 }
 
 # Шаг 4: Установка APK

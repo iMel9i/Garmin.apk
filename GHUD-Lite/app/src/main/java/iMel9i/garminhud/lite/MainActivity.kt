@@ -136,12 +136,24 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, DebugActivity::class.java))
         }
         
+        findViewById<Button>(R.id.btnAppSettings).setOnClickListener {
+            startActivity(Intent(this, AppSettingsActivity::class.java))
+        }
+        
+        findViewById<Button>(R.id.btnOsmSettings).setOnClickListener {
+            startActivity(Intent(this, OsmSettingsActivity::class.java))
+        }
+        
+        findViewById<Button>(R.id.btnLayoutEditor).setOnClickListener {
+            startActivity(Intent(this, LayoutEditorActivity::class.java))
+        }
+        
         switchGmaps.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
                 // Проверяем разрешение на доступ к уведомлениям
                 if (!isNotificationServiceEnabled()) {
                     // Просим пользователя предоставить доступ
-                    val message = "Для интеграции с навигацией необходим доступ к уведомлениям.\\n\\nПожалуйста, включите доступ для GHUD Lite в настройках."
+                    val message = "Для интеграции с навигацией необходим доступ к уведомлениям.\n\nПожалуйста, включите доступ для GHUD Lite в настройках."
                     android.app.AlertDialog.Builder(this)
                         .setTitle("Требуется доступ")
                         .setMessage(message)
@@ -397,6 +409,6 @@ class MainActivity : AppCompatActivity() {
     
     private fun openNotificationSettings() {
         val intent = Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")
-        startActivity(intent)
+        this.startActivity(intent)
     }
 }

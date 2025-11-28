@@ -25,23 +25,16 @@ class AppConfigManager(context: Context) {
         // Default configurations
         val DEFAULT_CONFIGS = listOf(
             AppConfig(
-                packageName = "com.google.android.apps.maps",
-                appName = "Google Maps",
-                enabled = true,
-                fields = mapOf(
-                    "title" to "android.title",
-                    "text" to "android.text",
-                    "bigText" to "android.bigText"
-                )
-            ),
-            AppConfig(
                 packageName = "ru.yandex.yandexmaps",
                 appName = "Yandex Maps",
                 enabled = true,
                 fields = mapOf(
-                    "title" to "android.title",
-                    "text" to "android.text",
-                    "bigText" to "android.bigText"
+                    HudDataType.DISTANCE_TO_TURN.name to "ru.yandex.yandexmaps:id/distance_to_turn",
+                    HudDataType.NAVIGATION_INSTRUCTION.name to "ru.yandex.yandexmaps:id/instruction_text",
+                    HudDataType.ETA.name to "ru.yandex.yandexmaps:id/eta_time",
+                    HudDataType.REMAINING_TIME.name to "ru.yandex.yandexmaps:id/remaining_time",
+                    HudDataType.TRAFFIC_SCORE.name to "ru.yandex.yandexmaps:id/city_traffic_index",
+                    HudDataType.DIRECTION_ARROW.name to "ru.yandex.yandexmaps:id/image_maneuverballoon_maneuver"
                 )
             ),
             AppConfig(
@@ -49,9 +42,13 @@ class AppConfigManager(context: Context) {
                 appName = "Yandex Navigator",
                 enabled = true,
                 fields = mapOf(
-                    "title" to "android.title",
-                    "text" to "android.text",
-                    "bigText" to "android.bigText"
+                    HudDataType.DISTANCE_TO_TURN.name to "ru.yandex.yandexnavi:id/distance_to_maneuver",
+                    HudDataType.NAVIGATION_INSTRUCTION.name to "ru.yandex.yandexnavi:id/maneuver_text",
+                    HudDataType.ETA.name to "ru.yandex.yandexnavi:id/arrival_time",
+                    HudDataType.REMAINING_TIME.name to "ru.yandex.yandexnavi:id/time_left",
+                    HudDataType.TRAFFIC_SCORE.name to "ru.yandex.yandexnavi:id/traffic_index",
+                    HudDataType.CURRENT_SPEED.name to "ru.yandex.yandexnavi:id/current_speed",
+                    HudDataType.DIRECTION_ARROW.name to "ru.yandex.yandexnavi:id/image_maneuverballoon_maneuver"
                 )
             )
         )

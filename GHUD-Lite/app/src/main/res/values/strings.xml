@@ -17,4 +17,5 @@
     <string name="status_connecting">Подключение...</string>
     <string name="bt_not_available">Bluetooth недоступен</string>
     <string name="bt_not_enabled">Bluetooth не включен</string>
+    <string name="accessibility_service_description">Этот сервис читает данные навигации с экрана (дистанцию, время, пробки) для отображения на проекционном дисплее Garmin HUD</string>
 </resources>

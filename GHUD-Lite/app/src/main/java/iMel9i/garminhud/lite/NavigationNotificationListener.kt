@@ -66,41 +66,87 @@ class NavigationNotificationListener : NotificationListenerService() {
         val notification = sbn.notification
         val extras = notification.extras
         
-        // Extract fields based on config
-        // We look for keys "title", "text", "bigText" in the config fields map
-        // If not found, we use default android keys
-        val titleKey = config.fields["title"] ?: "android.title"
-        val textKey = config.fields["text"] ?: "android.text"
-        val bigTextKey = config.fields["bigText"] ?: "android.bigText"
+        // LOG ALL EXTRAS KEYS for debugging
+        val allExtras = mutableMapOf<String, String>()
+        extras.keySet().forEach { key ->
+            val value = extras.get(key)
+            allExtras[key] = value?.toString() ?: "null"
+            Log.d(TAG, "  Extra: $key = $value")
+        }
         
-        val title = extras.getCharSequence(titleKey)?.toString()
-        val text = extras.getCharSequence(textKey)?.toString()
-        val bigText = extras.getCharSequence(bigTextKey)?.toString()
+        // Update Debug Raw Data with standard fields
+        val title = extras.getCharSequence("android.title")?.toString()
+        val text = extras.getCharSequence("android.text")?.toString()
+        val bigText = extras.getCharSequence("android.bigText")?.toString()
+        val subText = extras.getCharSequence("android.subText")?.toString()
+        val infoText = extras.getCharSequence("android.infoText")?.toString()
         
-        Log.d(TAG, "Notification from ${sbn.packageName}")
-        Log.d(TAG, "  Title ($titleKey): $title")
-        Log.d(TAG, "  Text ($textKey): $text")
-        Log.d(TAG, "  BigText ($bigTextKey): $bigText")
-        
-        // Update debug data
         HudService.navDebug.packageName = sbn.packageName
         HudService.navDebug.title = title ?: ""
         HudService.navDebug.text = text ?: ""
         HudService.navDebug.bigText = bigText ?: ""
         HudService.navDebug.lastUpdateTime = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
         
-        // Generic parsing logic
-        // 1. Instruction is usually in title
-        // 2. Distance can be in title (e.g. "In 500m...") or text
-        // 3. ETA is usually in text
+        HudState.lastPackageName = sbn.packageName
+        HudState.rawData.clear()
+        HudState.rawData.putAll(allExtras) // Store ALL extras for debugging
         
-        val instruction = title ?: text
+        // --- Parsing based on Configured Mappings ---
         
-        // Try to find distance in title first, then text, then bigText
-        val distance = extractDistance(title) ?: extractDistance(text) ?: extractDistance(bigText)
+        // 1. Distance
+        val distanceKey = config.fields[HudDataType.DISTANCE_TO_TURN.name]
+        var distance: String? = null
+        if (distanceKey != null) {
+            val rawDist = extras.getCharSequence(distanceKey)?.toString()
+            // If user mapped it, try to extract distance from it
+            distance = extractDistance(rawDist)
+        } else {
+            // Fallback: try standard fields
+            distance = extractDistance(title) ?: extractDistance(text) ?: extractDistance(bigText)
+        }
         
-        // ETA is usually the rest of the text
-        val eta = text
+        // 2. Instruction / Direction
+        val instructionKey = config.fields[HudDataType.NAVIGATION_INSTRUCTION.name]
+        var instruction: String? = null
+        if (instructionKey != null) {
+            instruction = extras.getCharSequence(instructionKey)?.toString()
+        } else {
+            // Fallback
+            instruction = title ?: text
+        }
+        
+        // 3. ETA
+        val etaKey = config.fields[HudDataType.ETA.name]
+        var eta: String? = null
+        if (etaKey != null) {
+            eta = extras.getCharSequence(etaKey)?.toString()
+        } else {
+            // Fallback: usually text contains ETA if title contains instruction
+            eta = text
+        }
+        
+        // 4. Remaining Time
+        val timeKey = config.fields[HudDataType.REMAINING_TIME.name]
+        var remainingTime: String? = null
+        if (timeKey != null) {
+            remainingTime = extras.getCharSequence(timeKey)?.toString()
+        }
+        
+        // 5. Traffic Score
+        val trafficKey = config.fields[HudDataType.TRAFFIC_SCORE.name]
+        var trafficScore: Int? = null
+        if (trafficKey != null) {
+            val rawTraffic = extras.getCharSequence(trafficKey)?.toString()
+            trafficScore = rawTraffic?.toIntOrNull()
+        }
+        
+        // 6. Speed Limit (if available in notif)
+        val limitKey = config.fields[HudDataType.SPEED_LIMIT.name]
+        var speedLimit: Int? = null
+        if (limitKey != null) {
+            val rawLimit = extras.getCharSequence(limitKey)?.toString()
+            speedLimit = rawLimit?.toIntOrNull()
+        }
         
         if (instruction == null && distance == null) return
         
@@ -108,16 +154,76 @@ class NavigationNotificationListener : NotificationListenerService() {
             instruction = instruction,
             distance = distance,
             eta = eta,
+            speedLimit = speedLimit,
             isNavigating = true
         )
         
-        // Update debug data for parsed values
-        HudService.navDebug.parsedInstruction = navData.instruction ?: ""
-        HudService.navDebug.parsedDistance = navData.distance ?: ""
-        HudService.navDebug.parsedEta = navData.eta ?: ""
+        // Update Universal State
+        HudState.isNavigating = true
+        HudState.distanceToTurn = distance
+        HudState.eta = eta
+        HudState.remainingTime = remainingTime
+        HudState.trafficScore = trafficScore
+        if (speedLimit != null) HudState.speedLimit = speedLimit
+        
+        // 7. Arrow Image (Large Icon or Picture)
+        val largeIcon = extras.getParcelable<android.graphics.Bitmap>("android.largeIcon") 
+            ?: (extras.getParcelable<android.graphics.drawable.Icon>("android.largeIcon")?.loadDrawable(this)?.let { ImageUtils.drawableToBitmap(it) })
+        
+        val picture = extras.getParcelable<android.graphics.Bitmap>("android.picture")
+        
+        if (largeIcon != null) {
+            Log.d(TAG, "Found LargeIcon in notification: ${largeIcon.width}x${largeIcon.height}")
+            HudService.navDebug.lastArrowBitmap = largeIcon
+            val arrowImage = ArrowImage(largeIcon)
+            val arrow = ArrowDirection.recognize(arrowImage)
+            if (arrow != ArrowDirection.NONE) {
+                HudState.turnIcon = arrow.hudCode
+                Log.d(TAG, "Recognized arrow from LargeIcon: $arrow")
+            }
+        } else if (picture != null) {
+            Log.d(TAG, "Found Picture in notification: ${picture.width}x${picture.height}")
+            HudService.navDebug.lastArrowBitmap = picture
+            val arrowImage = ArrowImage(picture)
+            val arrow = ArrowDirection.recognize(arrowImage)
+            if (arrow != ArrowDirection.NONE) {
+                HudState.turnIcon = arrow.hudCode
+                Log.d(TAG, "Recognized arrow from Picture: $arrow")
+            }
+        } else {
+            HudService.navDebug.lastArrowBitmap = null
+            // Fallback: Parse arrow from text instruction
+            if (instruction != null) {
+                val arrow = parseTextToArrow(instruction)
+                if (arrow != ArrowDirection.NONE) {
+                    HudState.turnIcon = arrow.hudCode
+                    Log.d(TAG, "Parsed arrow from text '$instruction': $arrow")
+                }
+            }
+        }
+        
+        HudService.navDebug.parsedInstruction = instruction ?: ""
+        HudService.navDebug.parsedDistance = distance ?: ""
+        HudService.navDebug.parsedEta = eta ?: ""
         
         Log.d(TAG, "Parsed navigation data: $navData")
         onNavigationUpdate?.invoke(navData)
+        HudState.notifyUpdate()
+    }
+    
+    private fun parseTextToArrow(text: String): ArrowDirection {
+        val t = text.lowercase()
+        return when {
+            "u-turn" in t || "разворот" in t -> ArrowDirection.SHARP_LEFT // Or specific code if available
+            "sharp left" in t || "резко налево" in t -> ArrowDirection.SHARP_LEFT
+            "sharp right" in t || "резко направо" in t -> ArrowDirection.SHARP_RIGHT
+            "left" in t || "налево" in t -> ArrowDirection.LEFT
+            "right" in t || "направо" in t -> ArrowDirection.RIGHT
+            "keep left" in t || "левее" in t -> ArrowDirection.KEEP_LEFT
+            "keep right" in t || "правее" in t -> ArrowDirection.KEEP_RIGHT
+            "straight" in t || "прямо" in t -> ArrowDirection.STRAIGHT
+            else -> ArrowDirection.NONE
+        }
     }
     
     private fun extractDistance(text: String?): String? {

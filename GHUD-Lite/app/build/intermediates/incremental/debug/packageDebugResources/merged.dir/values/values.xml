@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="accessibility_service_description">Этот сервис читает данные навигации с экрана (дистанцию, время, пробки) для отображения на проекционном дисплее Garmin HUD</string>
     <string name="app_name">GHUD Lite</string>
     <string name="arrow_left">Налево</string>
     <string name="arrow_right">Направо</string>

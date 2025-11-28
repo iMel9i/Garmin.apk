@@ -32,7 +32,6 @@ class HudService : Service(), LocationListener {
         private const val KEY_DEVICE_ADDRESS = "device_address"
         private const val KEY_DEVICE_NAME = "device_name"
         private const val RECONNECT_DELAY_MS = 5000L
-        private const val OK_DISPLAY_DURATION_MS = 2000L
         private const val ACTION_STOP_SERVICE = "STOP_SERVICE"
         
         // Debug data for UI
@@ -54,6 +53,7 @@ class HudService : Service(), LocationListener {
             var parsedInstruction: String = "",
             var parsedDistance: String = "",
             var parsedEta: String = "",
+            var lastArrowBitmap: android.graphics.Bitmap? = null,
             var lastUpdateTime: String = ""
         )
         
@@ -97,29 +97,45 @@ class HudService : Service(), LocationListener {
         createNotificationChannel()
         
         val notification = createNotification("Инициализация...")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // Android 12+
-            try {
+        
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                // Android 12+: Check for Bluetooth permissions before using connectedDevice type
+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                    startForeground(
+                        NOTIFICATION_ID, 
+                        notification,
+                        android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION or 
+                        android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+                    )
+                } else {
+                    // Fallback to just location if bluetooth permission missing
+                    Log.w(TAG, "Missing BLUETOOTH_CONNECT permission, starting with LOCATION type only")
+                    startForeground(
+                        NOTIFICATION_ID, 
+                        notification,
+                        android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+                    )
+                }
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // Android 10-11
                 startForeground(
                     NOTIFICATION_ID, 
                     notification,
-                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION or 
-                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
                 )
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to start foreground service with types", e)
+            } else {
+                // Android 9 and below
                 startForeground(NOTIFICATION_ID, notification)
             }
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // Android 10-11
-            startForeground(
-                NOTIFICATION_ID, 
-                notification,
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
-            )
-        } else {
-            // Android 9 and below
-            startForeground(NOTIFICATION_ID, notification)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start foreground service", e)
+            // Ultimate fallback
+            try {
+                startForeground(NOTIFICATION_ID, notification)
+            } catch (e2: Exception) {
+                Log.e(TAG, "Critical failure starting foreground service", e2)
+            }
         }
         
         hud = GarminHudLite(this)
@@ -236,110 +252,90 @@ class HudService : Service(), LocationListener {
         updateTimer = null
     }
     
-    private fun updateHud() {
-        if (!hud.isConnected()) return
-        
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val showTime = prefs.getBoolean("show_time", true)
-        val showSpeed = prefs.getBoolean("show_speed", true)
-        val gmapsEnabled = prefs.getBoolean("gmaps_integration", false)
-        
-        if (gmapsEnabled && isNavigating && currentNavigationData != null) {
-            // Режим навигации: показываем направление и расстояние
-            updateNavigationMode()
-        } else {
-            // Обычный режим: показываем время и скорость
-            updateNormalMode(showTime, showSpeed)
-        }
-    }
-    
-    private fun updateNavigationMode() {
-        val navData = currentNavigationData ?: return
-        
-        // Отображаем направление (пока используем straight, нужно парсить из instruction)
-        // TODO: Распознавать направление из текста инструкции
-        val direction = parseDirection(navData.instruction)
-        hud.setDirection(direction)
-        
-        // Отображаем расстояние
-        navData.distance?.let { distStr ->
-            val (value, unit) = parseDistanceToMeters(distStr)
-            if (value != null) {
-                hud.setDistance(value, unit)
-            }
-        }
-        
-        // Показываем скорость (если есть данные от навигации или GPS)
-        val speedKmh = navData.speed ?: (currentSpeed * 3.6f).toInt()
-        if (speedKmh > 0) {
-            hud.setSpeed(speedKmh, showIcon = false)
-        }
-    }
-    
     private val osmClient = OsmClient()
     private var currentOsmSpeedLimit: Int? = null
     private var nearbyCameras: List<OsmClient.CameraLocation> = emptyList()
     private var lastOsmUpdateLocation: Location? = null
     private val OSM_UPDATE_DISTANCE_METERS = 500f
     private var distanceToCamera: Int? = null
-
-    private fun updateNormalMode(showTime: Boolean, showSpeed: Boolean) {
+    
+    private fun updateHud() {
+        if (!hud.isConnected()) return
+        
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        // Отправляем текущее время
-        if (showTime) {
-            val calendar = Calendar.getInstance()
-            val hour = calendar.get(Calendar.HOUR_OF_DAY)
-            val minute = calendar.get(Calendar.MINUTE)
-            hud.setTime(hour, minute)
+        val gmapsEnabled = prefs.getBoolean("gmaps_integration", false)
+        
+        // Determine mode based on navigation state
+        val mode = if (gmapsEnabled && HudState.isNavigating) {
+            if (HudState.lastPackageName?.contains("yandex") == true) "YANDEX" else "GOOGLE"
+        } else {
+            "IDLE"
         }
         
-        // Отправляем скорость с предупреждением о превышении лимита
-        if (showSpeed) {
-            val speedKmh = (currentSpeed * 3.6f).toInt() // m/s to km/h
-            
-            val manualLimitEnabled = prefs.getBoolean("manual_speed_limit_enabled", false)
-            val manualLimit = prefs.getInt("speed_limit", 71)
-            val speedingThreshold = prefs.getInt("speeding_threshold", 10) // Порог превышения (по умолчанию +10 км/ч)
-            
-            // Priority: OSM -> Manual -> Default (71)
-            // If OSM limit is available, use it. Otherwise fallback to manual or default.
-            val effectiveLimit = currentOsmSpeedLimit ?: (if (manualLimitEnabled) manualLimit else 71)
-            
-            // Show limit if speed >= limit (as before, to keep "display as it is now")
-            val showLimit = speedKmh >= effectiveLimit
-            
-            // Show speeding icon if speed >= limit + threshold
-            val isSpeeding = speedKmh >= (effectiveLimit + speedingThreshold)
-            
-            val showCamera = distanceToCamera != null
-            
-            // Используем новый метод для отображения скорости с лимитом и иконкой
-            hud.setSpeedWithLimit(
-                currentSpeed = speedKmh,
-                speedLimit = if (showLimit) effectiveLimit else null,
-                showSpeedingIcon = isSpeeding,
-                showCameraIcon = showCamera
-            )
-            
-            // Update debug data
-            hudDebug.currentSpeed = speedKmh
-            hudDebug.displayedSpeedLimit = if (showLimit) effectiveLimit else null
-            hudDebug.showingSpeedingIcon = isSpeeding
-            hudDebug.showingCameraIcon = showCamera
-            hudDebug.lastCommand = "Speed: $speedKmh km/h, Limit: ${if (showLimit) effectiveLimit else "none"}, Speeding: $isSpeeding, Camera: $showCamera"
-            hudDebug.lastUpdateTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-            
-            // Если есть камера, показываем расстояние вместо времени
-            if (showCamera && distanceToCamera != null) {
-                hud.setDistance(distanceToCamera!!, 2) // meters
-                hudDebug.currentDistance = "${distanceToCamera}m"
-            } else {
-                hud.clearDistance()
-                hudDebug.currentDistance = ""
-            }
+        // Load layout profile
+        val layoutManager = LayoutConfigManager(this)
+        val profile = layoutManager.getProfile(mode)
+        
+        // 1. Direction Arrow
+        val arrowType = profile.slots[HudSlot.DIRECTION_ARROW]
+        if (arrowType == HudDataType.DISTANCE_TO_TURN || arrowType == HudDataType.NONE) {
+             // If configured to show turn info (or default for nav), show arrow
+             if (HudState.isNavigating && HudState.turnIcon != null) {
+                 hud.setDirection(HudState.turnIcon!!)
+             } else {
+                 hud.setDirection(0) // Clear or Straight?
+             }
         }
+        
+        // 2. Main Number (Distance)
+        val mainType = profile.slots[HudSlot.MAIN_NUMBER]
+        if (mainType == HudDataType.DISTANCE_TO_TURN && HudState.distanceToTurnMeters != null) {
+            // Форматируем расстояние правильно (как в оригинальном приложении)
+            val (value, unit) = DistanceFormatter.formatDistance(HudState.distanceToTurnMeters!!)
+            hud.setDistance(value, unit.hudValue)
+        } else if (mainType == HudDataType.DISTANCE_TO_CAMERA && HudState.cameraDistance != null) {
+            val (value, unit) = DistanceFormatter.formatDistance(HudState.cameraDistance!!)
+            hud.setDistance(value, unit.hudValue)
+        } else if (mainType == HudDataType.CURRENT_SPEED) {
+            // Если хотим скорость — просто число
+            hud.setDistance(HudState.currentSpeed, DistanceUnit.NONE.hudValue)
+        } else {
+            hud.clearDistance()
+        }
+
+        // 3. Speed / Secondary
+        val showSpeed = profile.slots[HudSlot.MAIN_NUMBER] == HudDataType.CURRENT_SPEED || 
+                        profile.slots[HudSlot.SECONDARY_NUMBER] == HudDataType.CURRENT_SPEED
+                        
+        val showTime = profile.slots[HudSlot.SECONDARY_NUMBER] == HudDataType.CURRENT_TIME
+        
+        if (showTime) {
+            val calendar = Calendar.getInstance()
+            hud.setTime(calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE))
+        }
+        
+        // Speed Logic
+        val speedKmh = HudState.currentSpeed
+        val limit = HudState.speedLimit
+        val speeding = HudState.isSpeeding
+        val camera = HudState.cameraDistance != null
+        
+        // If the layout requests speed, we show it.
+        if (showSpeed || HudState.isSpeeding) { 
+             hud.setSpeedWithLimit(speedKmh, limit, speeding, camera)
+        } else {
+             hud.setSpeedWithLimit(0, null, false, camera) // Clear speed
+        }
+        
+        // Update debug data
+        hudDebug.currentSpeed = speedKmh
+        hudDebug.displayedSpeedLimit = limit
+        hudDebug.showingSpeedingIcon = speeding
+        hudDebug.showingCameraIcon = camera
+        hudDebug.lastCommand = "Speed: $speedKmh, Limit: $limit, Speeding: $speeding"
+        hudDebug.lastUpdateTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
     }
-    
+
     private fun updateOsmData(location: Location) {
         val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
         osmDebug.lastLocation = String.format("%.6f, %.6f", location.latitude, location.longitude)
@@ -348,11 +344,28 @@ class HudService : Service(), LocationListener {
         osmClient.getSpeedLimit(location.latitude, location.longitude) { limit ->
             currentOsmSpeedLimit = limit
             osmDebug.currentSpeedLimit = limit
+            
+            // Update Universal State
+            HudState.speedLimit = limit
+            checkSpeeding()
         }
         
         osmClient.getCameras(location.latitude, location.longitude, 1000) { cameras ->
             nearbyCameras = cameras
             osmDebug.camerasFound = cameras.size
+        }
+    }
+    
+    private fun checkSpeeding() {
+        val limit = HudState.speedLimit
+        val speed = HudState.currentSpeed
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val threshold = prefs.getInt("speeding_threshold", 10)
+        
+        if (limit != null) {
+            HudState.isSpeeding = speed >= (limit + threshold)
+        } else {
+            HudState.isSpeeding = false
         }
     }
     
@@ -368,50 +381,36 @@ class HudService : Service(), LocationListener {
             }
         }
         
-        // Показываем предупреждение о камере если расстояние <= 300м (было 100м)
+        // Показываем предупреждение о камере если расстояние <= 300м
         distanceToCamera = if (minDist != null && minDist <= 300) minDist.toInt() else null
         osmDebug.nearestCameraDistance = distanceToCamera
+        
+        // Update Universal State
+        HudState.cameraDistance = distanceToCamera
     }
     
+    // Helper for parseDirection is now in ArrowRecognition or handled by AccessibilityService
+    // But we might need a fallback for text-based parsing if Accessibility fails to get image
     private fun parseDirection(instruction: String?): Int {
-        if (instruction == null) return 0x10 // Straight
-        
+        if (instruction == null) return 0
         val instr = instruction.lowercase()
         return when {
-            // Sharp Left
-            "sharp left" in instr || "резко налево" in instr || "круто налево" in instr -> 0x80
-            // Left
-            "turn left" in instr || "поверните налево" in instr || "налево" in instr -> 0x40
-            // Easy Left
-            "keep left" in instr || "bear left" in instr || "держитесь левее" in instr || "левее" in instr || "немного налево" in instr -> 0x20
-            
-            // Sharp Right
-            "sharp right" in instr || "резко направо" in instr || "круто направо" in instr -> 0x02
-            // Right
-            "turn right" in instr || "поверните направо" in instr || "направо" in instr -> 0x04
-            // Easy Right
-            "keep right" in instr || "bear right" in instr || "держитесь правее" in instr || "правее" in instr || "немного направо" in instr -> 0x08
-            
-            else -> 0x10 // Straight
+            "sharp left" in instr || "резко налево" in instr -> 7
+            "turn left" in instr || "поверните налево" in instr || "налево" in instr -> 1
+            "keep left" in instr || "левее" in instr -> 4
+            "sharp right" in instr || "резко направо" in instr -> 8
+            "turn right" in instr || "поверните направо" in instr || "направо" in instr -> 6
+            "keep right" in instr || "правее" in instr -> 5
+            else -> 0
         }
     }
-    
-    private fun parseDistanceToMeters(distStr: String): Pair<Float?, Int> {
-        // Парсим строки типа "500 m", "1.5 km"
-        val regex = """(\d+(?:\.\d+)?)\s*(m|м|km|км)""".toRegex(RegexOption.IGNORE_CASE)
-        val match = regex.find(distStr) ?: return Pair(null, 1)
-        
-        val value = match.groupValues[1].toFloatOrNull() ?: return Pair(null, 1)
-        val unitStr = match.groupValues[2].lowercase()
-        
-        return when (unitStr) {
-            "km", "км" -> Pair(value, 1) // Return as is (e.g. 1.2), unit=1 (km)
-            else -> Pair(value, 2) // Return as is (e.g. 500), unit=2 (m)
-        }
-    }
-    
+
     override fun onLocationChanged(location: Location) {
         currentSpeed = location.speed
+        
+        // Update Universal State
+        HudState.currentSpeed = (location.speed * 3.6f).toInt()
+        checkSpeeding()
         
         val lastLoc = lastOsmUpdateLocation
         if (lastLoc == null || location.distanceTo(lastLoc) > OSM_UPDATE_DISTANCE_METERS) {
@@ -442,6 +441,13 @@ class HudService : Service(), LocationListener {
     }
     
     private fun createNotification(text: String): Notification {
+        val contentIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val contentPendingIntent = android.app.PendingIntent.getActivity(
+            this, 0, contentIntent, android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
         val stopIntent = Intent(this, HudService::class.java).apply {
             action = ACTION_STOP_SERVICE
         }
@@ -455,6 +461,7 @@ class HudService : Service(), LocationListener {
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
+            .setContentIntent(contentPendingIntent)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Выход", stopPendingIntent)
             .build()
     }
@@ -468,13 +475,11 @@ class HudService : Service(), LocationListener {
         if (intent?.action == "RESTART_HUD") {
             restartHud()
         } else if (intent?.action == ACTION_STOP_SERVICE) {
-            // Broadcast to close MainActivity
             val closeIntent = Intent("CLOSE_APP")
             closeIntent.setPackage(packageName)
             sendBroadcast(closeIntent)
-            
-            // Stop service
             stopSelf()
+            android.os.Process.killProcess(android.os.Process.myPid())
         }
         return START_STICKY
     }
@@ -482,7 +487,6 @@ class HudService : Service(), LocationListener {
     private fun restartHud() {
         if (hud.isConnected()) {
             hud.disconnect()
-            // Reconnection will be handled by the onConnectionStateChanged -> reconnectRunnable logic
             Toast.makeText(this, "HUD перезагружается...", Toast.LENGTH_SHORT).show()
         }
     }

@@ -41,6 +41,16 @@
             android:label="App Settings"
             android:exported="false" />
 
+        <activity 
+            android:name=".OsmSettingsActivity"
+            android:label="OSM Settings"
+            android:exported="false" />
+
+        <activity
+            android:name=".LayoutEditorActivity"
+            android:label="Конструктор Экрана"
+            android:exported="false" />
+
         <service
             android:name=".HudService"
             android:foregroundServiceType="location|connectedDevice"
@@ -53,6 +63,18 @@
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
+        </service>
+
+        <service
+            android:name=".NavigationAccessibilityService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
         </service>
 
     </application>

@@ -1,186 +1,253 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp"
-    android:gravity="center">
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="GHUD Lite"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:gravity="center"
-        android:layout_marginBottom="24dp" />
-
-    <TextView
-        android:id="@+id/statusText"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/status_disconnected"
-        android:textSize="16sp"
-        android:padding="12dp"
-        android:background="#E0E0E0"
-        android:gravity="center"
-        android:layout_marginBottom="16dp" />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Инструкция:"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="8dp" />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="1. Нажмите 'Выбрать HUD' и выберите устройство\n2. Нажмите 'Запустить сервис'\n3. На HUD будет отображаться время и скорость"
-        android:textSize="12sp"
-        android:lineSpacingExtra="4dp"
-        android:layout_marginBottom="16dp" />
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="#F5F5F5"
-        android:padding="8dp"
-        android:layout_marginBottom="16dp">
+        android:padding="16dp"
+        android:gravity="center_horizontal">
 
-        <Switch
-            android:id="@+id/switchTime"
+        <TextView
+            android:id="@+id/statusText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Показывать время"
-            android:checked="true"
-            android:padding="8dp"/>
+            android:text="Статус: Не подключено"
+            android:textSize="18sp"
+            android:padding="12dp"
+            android:background="#E0E0E0"
+            android:gravity="center"
+            android:layout_marginBottom="24dp" />
 
-        <Switch
-            android:id="@+id/switchSpeed"
+        <Button
+            android:id="@+id/btnSelectHud"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Показывать скорость"
-            android:checked="true"
-            android:padding="8dp"/>
-
-        <Switch
-            android:id="@+id/switchManualSpeedLimit"
+            android:text="Выбрать HUD"
+            android:textSize="16sp"
+            android:layout_marginBottom="12dp" />
+            
+        <Button
+            android:id="@+id/btnRestartHud"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Ручной лимит скорости"
-            android:padding="8dp"/>
+            android:text="Перезагрузить HUD"
+            android:textSize="16sp"
+            android:layout_marginBottom="24dp" />
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp">
+            
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Показывать время"
+                android:textSize="16sp" />
+                
+            <Switch
+                android:id="@+id/switchTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp">
+            
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Показывать скорость"
+                android:textSize="16sp" />
+                
+            <Switch
+                android:id="@+id/switchSpeed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+        
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp">
+            
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Ручной лимит скорости"
+                android:textSize="16sp" />
+                
+            <Switch
+                android:id="@+id/switchManualSpeedLimit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+        
         <LinearLayout
             android:id="@+id/layoutSpeedLimitControl"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:background="#F5F5F5"
             android:padding="8dp"
-            android:gravity="center_vertical"
-            android:visibility="gone">
-
+            android:layout_marginBottom="12dp">
+            
             <TextView
-                android:layout_width="wrap_content"
+                android:id="@+id/textSpeedLimitValue"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Лимит:" />
-
+                android:text="71 км/ч"
+                android:gravity="center"
+                android:textStyle="bold"
+                android:layout_marginBottom="4dp"/>
+                
             <SeekBar
                 android:id="@+id/seekBarSpeedLimit"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="150"
+                android:progress="71"/>
+        </LinearLayout>
+        
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="12dp">
+            
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Порог превышения"
+                android:textSize="16sp" 
+                android:layout_marginBottom="4dp"/>
+                
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                
+                <TextView
+                    android:id="@+id/textSpeedingThresholdValue"
+                    android:layout_width="60dp"
+                    android:layout_height="wrap_content"
+                    android:text="+10 км/ч"
+                    android:textSize="14sp"
+                    android:gravity="end"
+                    android:layout_marginEnd="8dp"/>
+                    
+                <SeekBar
+                    android:id="@+id/seekBarSpeedingThreshold"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="30"
+                    android:progress="10"/>
+            </LinearLayout>
+        </LinearLayout>
+        
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp">
+            
+            <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:max="150"
-                android:progress="71" />
-
-            <TextView
-                android:id="@+id/textSpeedLimitValue"
+                android:text="Авто-яркость"
+                android:textSize="16sp" />
+                
+            <Switch
+                android:id="@+id/switchAutoBrightness"
                 android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+        
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp">
+            
+            <TextView
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="71 км/ч"
-                android:minWidth="60dp"
-                android:gravity="end"/>
+                android:layout_weight="1"
+                android:text="Интеграция с навигацией (Gmaps/Yandex)"
+                android:textSize="16sp" />
+                
+            <Switch
+                android:id="@+id/switchGmaps"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:padding="8dp"
-            android:gravity="center_vertical">
-
+            android:layout_marginBottom="24dp">
+            
             <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Порог превышения:" />
-
-            <SeekBar
-                android:id="@+id/seekBarSpeedingThreshold"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:max="30"
-                android:progress="10" />
-
-            <TextView
-                android:id="@+id/textSpeedingThresholdValue"
+                android:text="Активность сервиса"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+                
+            <Switch
+                android:id="@+id/switchService"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="+10 км/ч"
-                android:minWidth="70dp"
-                android:gravity="end"/>
+                android:layout_height="wrap_content" />
         </LinearLayout>
 
-        <Switch
-            android:id="@+id/switchAutoBrightness"
+        <Button
+            android:id="@+id/btnDebug"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Автояркость"
-            android:checked="true"
-            android:padding="8dp"/>
+            android:text="🔍 Debug Information"
+            android:textSize="16sp"
+            android:layout_marginBottom="12dp" />
 
-        <Switch
-            android:id="@+id/switchGmaps"
+        <Button
+            android:id="@+id/btnAppSettings"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Интеграция Google Maps / Яндекс"
-            android:checked="false"
-            android:padding="8dp"/>
+            android:text="⚙ Настройки Приложений"
+            android:textSize="16sp"
+            android:layout_marginBottom="12dp" />
 
-        <Switch
-            android:id="@+id/switchService"
+        <Button
+            android:id="@+id/btnOsmSettings"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Сервис активен"
-            android:checked="false"
-            android:padding="8dp"
-            android:textStyle="bold"/>
+            android:text="🗺️ Настройки OSM"
+            android:textSize="16sp"
+            android:layout_marginBottom="12dp" />
+
+        <Button
+            android:id="@+id/btnLayoutEditor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🎨 Конструктор Экрана"
+            android:textSize="16sp" />
 
     </LinearLayout>
-
-    <Button
-        android:id="@+id/btnSelectHud"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Выбрать HUD"
-        android:textSize="16sp"
-        android:layout_marginBottom="12dp" />
-
-    <Button
-        android:id="@+id/btnRestartHud"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Перезагрузить HUD"
-        android:textSize="16sp"
-        android:layout_marginBottom="12dp" />
-
-    <Button
-        android:id="@+id/btnDebug"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="🔍 Debug Information"
-        android:textSize="16sp" />
-
-</LinearLayout>
+</ScrollView>

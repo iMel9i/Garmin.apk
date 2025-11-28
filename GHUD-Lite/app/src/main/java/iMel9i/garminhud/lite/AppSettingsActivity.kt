@@ -63,36 +63,35 @@ class AppSettingsActivity : AppCompatActivity() {
         val layoutFields = dialogView.findViewById<LinearLayout>(R.id.layoutFields)
         val btnAddField = dialogView.findViewById<Button>(R.id.btnAddField)
         
+        // Hide "Add Field" button as we use fixed list
+        btnAddField.visibility = View.GONE
+        
         val fields = mutableMapOf<String, String>()
         
         // Pre-fill if editing
         config?.let {
             editAppName.setText(it.appName)
             editPackageName.setText(it.packageName)
-            editPackageName.isEnabled = false // Don't allow changing package name when editing
+            editPackageName.isEnabled = false
             fields.putAll(it.fields)
         }
         
-        // Add default fields if new
-        if (config == null) {
-            fields["title"] = "android.title"
-            fields["text"] = "android.text"
-            fields["bigText"] = "android.bigText"
-        }
+        // Variables to map
+        val variables = listOf(
+            HudDataType.DISTANCE_TO_TURN to "Дистанция",
+            HudDataType.ETA to "Время прибытия (ETA)",
+            HudDataType.REMAINING_TIME to "Время в пути",
+            HudDataType.TRAFFIC_SCORE to "Баллы пробок",
+            HudDataType.NAVIGATION_INSTRUCTION to "Инструкция (Текст)",
+            HudDataType.SPEED_LIMIT to "Ограничение скорости",
+            HudDataType.CURRENT_SPEED to "Текущая скорость"
+        )
         
-        fun refreshFields() {
-            layoutFields.removeAllViews()
-            fields.forEach { (fieldName, fieldValue) ->
-                addFieldRow(layoutFields, fieldName, fieldValue, fields)
-            }
-        }
-        
-        refreshFields()
-        
-        btnAddField.setOnClickListener {
-            val newFieldName = "field${fields.size + 1}"
-            fields[newFieldName] = "android.custom"
-            refreshFields()
+        // Populate rows
+        variables.forEach { (type, label) ->
+            val key = type.name
+            val value = fields[key] ?: ""
+            addFieldRow(layoutFields, label, key, value, fields)
         }
         
         AlertDialog.Builder(this)
@@ -128,70 +127,70 @@ class AppSettingsActivity : AppCompatActivity() {
     
     private fun addFieldRow(
         container: LinearLayout,
-        fieldName: String,
-        fieldValue: String,
+        label: String,
+        key: String,
+        initialValue: String,
         fields: MutableMap<String, String>
     ) {
         val row = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
+            orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                bottomMargin = 8
+                bottomMargin = 16
             }
         }
         
-        val editName = EditText(this).apply {
-            hint = "Имя поля"
-            setText(fieldName)
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        val textLabel = TextView(this).apply {
+            text = label
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                bottomMargin = 4
+            }
         }
         
         val editValue = EditText(this).apply {
-            hint = "Ключ (android.title)"
-            setText(fieldValue)
+            hint = "ID поля (например android.title)"
+            setText(initialValue)
             typeface = android.graphics.Typeface.MONOSPACE
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.5f).apply {
-                marginStart = 8
-            }
-        }
-        
-        val btnRemove = Button(this).apply {
-            text = "×"
+            textSize = 14f
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                marginStart = 8
-            }
-            setOnClickListener {
-                fields.remove(fieldName)
-                container.removeView(row)
-            }
-        }
-        
-        // Update map when text changes
-        editName.setOnFocusChangeListener { _, hasFocus ->
-            if (!hasFocus) {
-                val oldName = fieldName
-                val newName = editName.text.toString()
-                if (newName != oldName && newName.isNotBlank()) {
-                    fields.remove(oldName)
-                    fields[newName] = editValue.text.toString()
-                }
-            }
+            )
         }
         
         editValue.setOnFocusChangeListener { _, hasFocus ->
             if (!hasFocus) {
-                fields[editName.text.toString()] = editValue.text.toString()
+                val value = editValue.text.toString()
+                if (value.isNotBlank()) {
+                    fields[key] = value
+                } else {
+                    fields.remove(key)
+                }
             }
         }
         
-        row.addView(editName)
+        // Also save on text change to be safe
+        editValue.addTextChangedListener(object : android.text.TextWatcher {
+            override fun afterTextChanged(s: android.text.Editable?) {
+                val value = s.toString()
+                if (value.isNotBlank()) {
+                    fields[key] = value
+                } else {
+                    fields.remove(key)
+                }
+            }
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+        })
+        
+        row.addView(textLabel)
         row.addView(editValue)
-        row.addView(btnRemove)
         
         container.addView(row)
     }
