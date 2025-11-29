@@ -7,6 +7,7 @@ import android.os.Looper
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import java.util.Calendar
 
 class DebugActivity : AppCompatActivity() {
     
@@ -14,7 +15,7 @@ class DebugActivity : AppCompatActivity() {
     private val updateRunnable = object : Runnable {
         override fun run() {
             updateDebugInfo()
-            updateHandler.postDelayed(this, 1000) // Update every second
+            updateHandler.postDelayed(this, 1000)
         }
     }
     
@@ -24,17 +25,35 @@ class DebugActivity : AppCompatActivity() {
         
         title = "Debug Information"
         
-        findViewById<Button>(R.id.btnRefresh).setOnClickListener {
+        findViewById<Button>(R.id.btnRefresh).setOnClickListener { updateDebugInfo() }
+        findViewById<Button>(R.id.btnAppSettings).setOnClickListener { startActivity(Intent(this, AppSettingsActivity::class.java)) }
+        findViewById<Button>(R.id.btnClearLogs).setOnClickListener { DebugLog.clear(); updateDebugInfo() }
+        
+        findViewById<Button>(R.id.btnToggleDump).setOnClickListener {
+            NavigationAccessibilityService.debugDumpMode = !NavigationAccessibilityService.debugDumpMode
             updateDebugInfo()
         }
         
-        findViewById<Button>(R.id.btnAppSettings).setOnClickListener {
-            startActivity(Intent(this, AppSettingsActivity::class.java))
+        findViewById<Button>(R.id.btnToggleNotifications).setOnClickListener {
+            NavigationNotificationListener.enabled = !NavigationNotificationListener.enabled
+            updateDebugInfo()
+        }
+        
+        findViewById<Button>(R.id.btnResetConfigs).setOnClickListener {
+            val configManager = AppConfigManager(this)
+            configManager.saveConfigs(AppConfigManager.DEFAULT_CONFIGS)
+            android.widget.Toast.makeText(this, "Configs reset!", android.widget.Toast.LENGTH_SHORT).show()
+        }
+        
+        findViewById<Button>(R.id.btnToggleToasts).setOnClickListener {
+            NavigationAccessibilityService.debugToastsEnabled = !NavigationAccessibilityService.debugToastsEnabled
+            android.widget.Toast.makeText(this, "Toasts: ${NavigationAccessibilityService.debugToastsEnabled}", android.widget.Toast.LENGTH_SHORT).show()
+            updateDebugInfo()
         }
         
         updateDebugInfo()
     }
-    
+
     override fun onResume() {
         super.onResume()
         updateHandler.post(updateRunnable)
@@ -56,10 +75,7 @@ class DebugActivity : AppCompatActivity() {
         // Navigation Debug
         findViewById<TextView>(R.id.navPackage).text = "Package: ${HudState.lastPackageName}"
         
-        // Display ALL raw extras
-        val allExtras = HudState.rawData.entries.joinToString("\n") { (key, value) ->
-            "  $key: $value"
-        }
+        val allExtras = HudState.rawData.entries.joinToString("\n") { (key, value) -> "  $key: $value" }
         findViewById<TextView>(R.id.navTitle).text = "All Extras:\n$allExtras"
         findViewById<TextView>(R.id.navText).text = "Parsed Instruction: ${HudService.navDebug.parsedInstruction}"
         findViewById<TextView>(R.id.navBigText).text = "Parsed Distance: ${HudState.distanceToTurn}"
@@ -84,73 +100,89 @@ class DebugActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.hudSpeedLimit).text = "Displayed Speed Limit: ${HudState.speedLimit?.let { "${it} km/h" } ?: "none"}"
         findViewById<TextView>(R.id.hudSpeedingIcon).text = "Speeding Icon: ${if (HudState.isSpeeding) "ON" else "OFF"}"
         findViewById<TextView>(R.id.hudCameraIcon).text = "Camera Icon: ${if (HudState.cameraDistance != null) "ON" else "OFF"}"
-        findViewById<TextView>(R.id.hudDirection).text = "Direction: ${HudService.hudDebug.currentDirection}"
-        findViewById<TextView>(R.id.hudDistance).text = "Distance: ${HudService.hudDebug.currentDistance}"
-        findViewById<TextView>(R.id.hudLastCommand).text = "Last Command: ${HudService.hudDebug.lastCommand}"
+        
+        val arrowInfo = if (HudState.turnIcon != null) "Code ${HudState.turnIcon}" else "none"
+        findViewById<TextView>(R.id.hudDirection).text = "Direction: $arrowInfo"
+        findViewById<TextView>(R.id.hudDistance).text = "Distance: ${HudState.distanceToTurnMeters?.let { "${it}m" } ?: "none"}"
+        findViewById<TextView>(R.id.hudLastCommand).text = "Navigation: ${if (HudState.isNavigating) "ACTIVE" else "IDLE"}"
         findViewById<TextView>(R.id.hudUpdateTime).text = "Last Update: ${HudService.hudDebug.lastUpdateTime}"
         
-        // === Virtual HUD Update ===
+        // Logs
+        val logs = DebugLog.getAll()
+        val servicesStatus = "Accessibility: ${if (NavigationAccessibilityService.instance != null) "RUNNING" else "STOPPED"}\n" +
+                             "Dump Mode: ${if (NavigationAccessibilityService.debugDumpMode) "ON" else "OFF"}\n" +
+                             "Toasts: ${if (NavigationAccessibilityService.debugToastsEnabled) "ON" else "OFF"}\n\n"
+        
+        val logsText = logs.takeLast(50).reversed().joinToString("\n") { "${it.time} [${it.tag}] ${it.message}" }
+        findViewById<TextView>(R.id.debugLogs).text = servicesStatus + logsText
+        
+        // Maneuver Details
+        val turnIcon = HudState.turnIcon
+        findViewById<TextView>(R.id.maneuverDirection).text = "Direction Code: ${turnIcon ?: "none"}"
+        findViewById<TextView>(R.id.maneuverDirectionName).text = "Direction Name: ${turnIcon ?: "none"}" // Simplified
+        findViewById<TextView>(R.id.maneuverDistanceMeters).text = "Distance (meters): ${HudState.distanceToTurnMeters ?: "none"}"
+        findViewById<TextView>(R.id.maneuverDistanceFormatted).text = "Distance (formatted): ${HudState.distanceToTurn ?: "none"}"
+        findViewById<TextView>(R.id.maneuverInstructionText).text = "Instruction: ${HudService.navDebug.parsedInstruction}"
+        
+        // Arrow Status
+        findViewById<TextView>(R.id.maneuverArrowHash).text = "Arrow Status: ${HudService.navDebug.arrowStatus}"
+        
+        val arrowBitmapForHash = HudService.navDebug.lastArrowBitmap
+        if (arrowBitmapForHash != null) {
+             try {
+                val arrowImage = ArrowImage(arrowBitmapForHash.copy(android.graphics.Bitmap.Config.ARGB_8888, true))
+                val hash = arrowImage.getArrowValue()
+                val recognized = ArrowDirection.recognize(arrowImage)
+                findViewById<TextView>(R.id.maneuverArrowRecognized).text = "Recognized: ${if (recognized != ArrowDirection.NONE) recognized.name else "NO"} ($hash)"
+             } catch (e: Exception) {
+                 findViewById<TextView>(R.id.maneuverArrowRecognized).text = "Error hashing: ${e.message}"
+             }
+        } else {
+            findViewById<TextView>(R.id.maneuverArrowRecognized).text = "Recognized: NO IMAGE"
+        }
+        
         updateVirtualHud()
     }
     
     private fun updateVirtualHud() {
-        // Use the same logic as HudService to determine what to show
-        // Ideally this logic should be in a shared ViewModel or Helper, but for now we duplicate/adapt it
-        // to show what *would* be on the HUD based on current State + Config.
-        
-        val layoutManager = LayoutConfigManager(this)
-        // Determine mode (simplified logic for debug)
-        val mode = if (HudState.isNavigating) {
-             if (HudState.lastPackageName?.contains("yandex") == true) "YANDEX" else "GOOGLE"
-        } else {
-            "IDLE"
-        }
-        val profile = layoutManager.getProfile(mode)
-        
-        // 1. Direction
         val vDirection = findViewById<TextView>(R.id.vHudDirection)
-        val arrowType = profile.slots[HudSlot.DIRECTION_ARROW]
-        if (arrowType == HudDataType.DISTANCE_TO_TURN || arrowType == HudDataType.NONE) {
-             if (HudState.isNavigating) {
-                 vDirection.text = "↰" // Placeholder for turn icon
-                 vDirection.setTextColor(android.graphics.Color.GREEN)
-             } else {
-                 vDirection.text = "↑"
-                 vDirection.setTextColor(android.graphics.Color.DKGRAY)
-             }
+        if (HudState.isNavigating && HudState.turnIcon != null) {
+             vDirection.text = when (HudState.turnIcon) {
+                1 -> "↰"
+                6 -> "↱"
+                else -> "↑"
+            }
+            vDirection.setTextColor(android.graphics.Color.GREEN)
+        } else {
+            vDirection.text = "↑"
+            vDirection.setTextColor(android.graphics.Color.GRAY)
         }
         
-        // 2. Main Number
-        val vMain = findViewById<TextView>(R.id.vHudMain)
-        val mainType = profile.slots[HudSlot.MAIN_NUMBER]
-        val mainValue = getValueForType(mainType)
-        vMain.text = mainValue ?: "--"
+        val vDistance = findViewById<TextView>(R.id.vHudDistance)
+        val vDistanceUnit = findViewById<TextView>(R.id.vHudDistanceUnit)
+        if (HudState.distanceToTurnMeters != null) {
+            val meters = HudState.distanceToTurnMeters!!
+            val (value, unit) = DistanceFormatter.formatDistance(meters)
+            vDistance.text = "$value"
+            vDistanceUnit.text = if (unit == DistanceUnit.KILOMETRES) "km" else "m"
+        } else {
+            vDistance.text = "-"
+            vDistanceUnit.text = ""
+        }
         
-        // 3. Secondary Number
-        val vSecondary = findViewById<TextView>(R.id.vHudSecondary)
-        val secType = profile.slots[HudSlot.SECONDARY_NUMBER]
-        val secValue = getValueForType(secType)
-        vSecondary.text = secValue ?: "--:--"
+        val vEta = findViewById<TextView>(R.id.vHudEta)
+        vEta.text = HudState.eta ?: "00:00"
         
-        // Icons
+        val vSpeed = findViewById<TextView>(R.id.vHudSpeed)
+        vSpeed.text = "${HudState.currentSpeed}"
+        
+        val vSpeedLimit = findViewById<TextView>(R.id.vHudSpeedLimit)
+        vSpeedLimit.text = "${HudState.speedLimit ?: "-"}"
+        
         findViewById<android.view.View>(R.id.vHudIconSpeeding).visibility = 
             if (HudState.isSpeeding) android.view.View.VISIBLE else android.view.View.INVISIBLE
             
         findViewById<android.view.View>(R.id.vHudIconCamera).visibility = 
             if (HudState.cameraDistance != null) android.view.View.VISIBLE else android.view.View.INVISIBLE
-    }
-    
-    private fun getValueForType(type: HudDataType?): String? {
-        return when (type) {
-            HudDataType.CURRENT_SPEED -> "${HudState.currentSpeed}"
-            HudDataType.SPEED_LIMIT -> "${HudState.speedLimit}"
-            HudDataType.CURRENT_TIME -> HudState.currentTime
-            HudDataType.DISTANCE_TO_TURN -> HudState.distanceToTurn
-            HudDataType.ETA -> HudState.eta
-            HudDataType.REMAINING_TIME -> HudState.remainingTime
-            HudDataType.TRAFFIC_SCORE -> HudState.trafficScore?.toString()
-            HudDataType.DISTANCE_TO_CAMERA -> "${HudState.cameraDistance}m"
-            else -> null
-        }
     }
 }

@@ -15,7 +15,9 @@ class NavigationNotificationListener : NotificationListenerService() {
         
         var instance: NavigationNotificationListener? = null
         var onNavigationUpdate: ((NavigationData) -> Unit)? = null
+        var enabled = true // ВКЛЮЧЕНО по умолчанию, так как AccessibilityService screenshot не работает
     }
+
     
     data class NavigationData(
         val distance: String? = null,
@@ -33,16 +35,18 @@ class NavigationNotificationListener : NotificationListenerService() {
         super.onCreate()
         instance = this
         configManager = AppConfigManager(this)
-        Log.d(TAG, "Navigation notification listener created")
+        DebugLog.i(TAG, "Navigation notification listener created")
     }
     
     override fun onDestroy() {
         super.onDestroy()
         instance = null
-        Log.d(TAG, "Navigation notification listener destroyed")
+        DebugLog.i(TAG, "Navigation notification listener destroyed")
     }
     
     override fun onNotificationPosted(sbn: StatusBarNotification) {
+        if (!enabled) return // Пропускаем если выключено
+        
         val packageName = sbn.packageName
         val config = configManager.getConfigs().find { it.packageName == packageName && it.enabled }
         
@@ -50,13 +54,14 @@ class NavigationNotificationListener : NotificationListenerService() {
             parseNotification(sbn, config)
         }
     }
+
     
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
         val packageName = sbn.packageName
         val config = configManager.getConfigs().find { it.packageName == packageName && it.enabled }
         
         if (config != null) {
-            Log.d(TAG, "Navigation notification removed from: $packageName")
+            DebugLog.i(TAG, "Navigation notification removed from: $packageName")
             // Сообщаем, что навигация завершена
             onNavigationUpdate?.invoke(NavigationData(isNavigating = false))
         }
@@ -66,12 +71,14 @@ class NavigationNotificationListener : NotificationListenerService() {
         val notification = sbn.notification
         val extras = notification.extras
         
+        DebugLog.i(TAG, "=== PARSING NOTIFICATION FROM ${sbn.packageName} ===")
+        
         // LOG ALL EXTRAS KEYS for debugging
         val allExtras = mutableMapOf<String, String>()
         extras.keySet().forEach { key ->
             val value = extras.get(key)
             allExtras[key] = value?.toString() ?: "null"
-            Log.d(TAG, "  Extra: $key = $value")
+            DebugLog.d(TAG, "  Extra: $key = $value")
         }
         
         // Update Debug Raw Data with standard fields
@@ -161,6 +168,12 @@ class NavigationNotificationListener : NotificationListenerService() {
         // Update Universal State
         HudState.isNavigating = true
         HudState.distanceToTurn = distance
+        if (distance != null) {
+            val parsed = DistanceFormatter.parseDistance(distance)
+            if (parsed != null) {
+                HudState.distanceToTurnMeters = parsed.first
+            }
+        }
         HudState.eta = eta
         HudState.remainingTime = remainingTime
         HudState.trafficScore = trafficScore
@@ -172,23 +185,34 @@ class NavigationNotificationListener : NotificationListenerService() {
         
         val picture = extras.getParcelable<android.graphics.Bitmap>("android.picture")
         
+        var arrowBitmap: android.graphics.Bitmap? = null
+        
+        // Try to get bitmap from largeIcon first
         if (largeIcon != null) {
             Log.d(TAG, "Found LargeIcon in notification: ${largeIcon.width}x${largeIcon.height}")
-            HudService.navDebug.lastArrowBitmap = largeIcon
-            val arrowImage = ArrowImage(largeIcon)
-            val arrow = ArrowDirection.recognize(arrowImage)
-            if (arrow != ArrowDirection.NONE) {
-                HudState.turnIcon = arrow.hudCode
-                Log.d(TAG, "Recognized arrow from LargeIcon: $arrow")
-            }
+            arrowBitmap = largeIcon
         } else if (picture != null) {
             Log.d(TAG, "Found Picture in notification: ${picture.width}x${picture.height}")
-            HudService.navDebug.lastArrowBitmap = picture
-            val arrowImage = ArrowImage(picture)
+            arrowBitmap = picture
+        } else {
+            // Try to extract bitmap from RemoteViews (like old Google Maps approach)
+            arrowBitmap = extractBitmapFromRemoteViews(notification)
+        }
+        
+        if (arrowBitmap != null) {
+            HudService.navDebug.lastArrowBitmap = arrowBitmap
+            val arrowImage = ArrowImage(arrowBitmap)
+            val hash = arrowImage.getArrowValue()
+            Log.d(TAG, "Arrow Hash: $hash")
+            
             val arrow = ArrowDirection.recognize(arrowImage)
             if (arrow != ArrowDirection.NONE) {
                 HudState.turnIcon = arrow.hudCode
-                Log.d(TAG, "Recognized arrow from Picture: $arrow")
+                HudService.navDebug.arrowStatus = "Recognized: ${arrow.name} ($hash)"
+                Log.d(TAG, "Recognized arrow: $arrow")
+            } else {
+                HudService.navDebug.arrowStatus = "Not Recognized ($hash)"
+                Log.d(TAG, "Arrow not recognized, hash: $hash")
             }
         } else {
             HudService.navDebug.lastArrowBitmap = null
@@ -224,6 +248,40 @@ class NavigationNotificationListener : NotificationListenerService() {
             "straight" in t || "прямо" in t -> ArrowDirection.STRAIGHT
             else -> ArrowDirection.NONE
         }
+    }
+    
+    private fun extractBitmapFromRemoteViews(notification: android.app.Notification): android.graphics.Bitmap? {
+        try {
+            // Try bigContentView first, then contentView
+            val views = notification.bigContentView ?: notification.contentView ?: return null
+            
+            // Use reflection to access mBitmapCache
+            val viewsClass = views.javaClass
+            val bitmapCacheField = viewsClass.getDeclaredField("mBitmapCache")
+            bitmapCacheField.isAccessible = true
+            val bitmapCache = bitmapCacheField.get(views) ?: return null
+            
+            val bitmapsField = bitmapCache.javaClass.getDeclaredField("mBitmaps")
+            bitmapsField.isAccessible = true
+            val bitmapsObject = bitmapsField.get(bitmapCache)
+            
+            if (bitmapsObject is ArrayList<*>) {
+                @Suppress("UNCHECKED_CAST")
+                val bitmapList = bitmapsObject as ArrayList<android.graphics.Bitmap>
+                
+                // Usually the arrow is the first or second bitmap
+                for (bitmap in bitmapList) {
+                    if (bitmap.width > 0 && bitmap.height > 0) {
+                        Log.d(TAG, "Extracted bitmap from RemoteViews: ${bitmap.width}x${bitmap.height}")
+                        return bitmap
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to extract bitmap from RemoteViews: ${e.message}")
+        }
+        
+        return null
     }
     
     private fun extractDistance(text: String?): String? {

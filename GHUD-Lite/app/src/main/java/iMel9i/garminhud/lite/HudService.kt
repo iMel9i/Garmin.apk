@@ -44,17 +44,17 @@ class HudService : Service(), LocationListener {
             var lastUpdateTime: String = "",
             var lastLocation: String = ""
         )
-        
         data class NavigationDebugData(
             var packageName: String = "",
             var title: String = "",
             var text: String = "",
             var bigText: String = "",
+            var lastUpdateTime: String = "",
             var parsedInstruction: String = "",
             var parsedDistance: String = "",
             var parsedEta: String = "",
             var lastArrowBitmap: android.graphics.Bitmap? = null,
-            var lastUpdateTime: String = ""
+            var arrowStatus: String = "Waiting..."
         )
         
         data class HudDebugData(

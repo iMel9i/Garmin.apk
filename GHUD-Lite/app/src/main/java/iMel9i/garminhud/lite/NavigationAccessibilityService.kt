@@ -1,315 +1,436 @@
 package iMel9i.garminhud.lite
 
 import android.accessibilityservice.AccessibilityService
-import iMel9i.garminhud.lite.DebugLog
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import iMel9i.garminhud.lite.DebugLog
 
-/**
- * Accessibility Service для парсинга UI-элементов навигации
- * Читает данные по resource-id прямо с экрана приложений
- */
 class NavigationAccessibilityService : AccessibilityService() {
 
     companion object {
         private const val TAG = "NavAccessibility"
         var instance: NavigationAccessibilityService? = null
+        var debugDumpMode = true
+        var debugToastsEnabled = false
     }
 
     private lateinit var configManager: AppConfigManager
+    private var lastDumpTime = 0L
+    private val DUMP_INTERVAL = 5000L
 
     override fun onCreate() {
         super.onCreate()
         instance = this
         configManager = AppConfigManager(this)
         DebugLog.i(TAG, "Service created")
-        Log.d(TAG, "Navigation Accessibility Service created")
+    }
+
+    override fun onServiceConnected() {
+        super.onServiceConnected()
+        val info = serviceInfo
+        info.flags = info.flags or android.accessibilityservice.AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS
+        serviceInfo = info
+        DebugLog.i(TAG, "Service connected, flags updated to include not important views")
     }
 
     override fun onDestroy() {
         super.onDestroy()
         instance = null
         DebugLog.w(TAG, "Service destroyed")
-        Log.d(TAG, "Navigation Accessibility Service destroyed")
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         val packageName = event.packageName?.toString() ?: return
-        
-        // Check if this package is in our configs
-        val config = configManager.getConfigs().find { 
-            it.packageName == packageName && it.enabled 
-        } ?: return
+        val config = configManager.getConfigs().find { it.packageName == packageName && it.enabled } ?: return
 
-        // Parse UI elements based on config
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED ||
             event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             
-            val rootNode = rootInActiveWindow ?: return
+            // Try to get the correct root node for the target package
+            val rootNode = getRootNode(event, packageName) ?: return
+            
+            if (debugDumpMode) {
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - lastDumpTime > DUMP_INTERVAL) {
+                    lastDumpTime = currentTime
+                    dumpAllUIElements(rootNode, packageName)
+                }
+            }
+            
             parseUIElements(rootNode, config, packageName)
         }
     }
+    
+    private fun getRootNode(event: AccessibilityEvent, targetPackage: String): AccessibilityNodeInfo? {
+        // 1. Try rootInActiveWindow
+        val activeRoot = rootInActiveWindow
+        if (activeRoot != null && activeRoot.packageName == targetPackage) {
+            return activeRoot
+        }
+        
+        // 2. If active window is mismatch (e.g. we are debugging), try to climb up from event source
+        var source = event.source ?: return null
+        
+        while (true) {
+            val parent = source.parent
+            if (parent == null) {
+                if (source.packageName == targetPackage) {
+                    return source
+                } else {
+                    source.recycle()
+                    return null
+                }
+            }
+            source.recycle()
+            source = parent
+        }
+        
+        return null
+    }
 
-    private fun parseUIElements(
-        rootNode: AccessibilityNodeInfo,
-        config: AppConfigManager.AppConfig,
-        packageName: String
-    ) {
+    private fun dumpAllUIElements(rootNode: AccessibilityNodeInfo, packageName: String) {
+        DebugLog.i(TAG, "=== UI DUMP START ($packageName) ===")
+        dumpNodeRecursive(rootNode, 0)
+        DebugLog.i(TAG, "=== UI DUMP END ===")
+    }
+    
+    private fun dumpNodeRecursive(node: AccessibilityNodeInfo, depth: Int) {
+        val indent = "  ".repeat(depth)
+        val className = node.className?.toString() ?: "null"
+        val resourceId = node.viewIdResourceName ?: "null"
+        val text = node.text?.toString() ?: ""
+        val contentDesc = node.contentDescription?.toString() ?: ""
+        
+        if (resourceId != "null" || text.isNotEmpty() || contentDesc.isNotEmpty() || className.contains("ImageView") || className.contains("TextView")) {
+            DebugLog.d(TAG, "$indent[$className] id=$resourceId text='$text' desc='$contentDesc'")
+        }
+        
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i)
+            if (child != null) {
+                dumpNodeRecursive(child, depth + 1)
+                child.recycle()
+            }
+        }
+    }
+
+    private fun parseUIElements(rootNode: AccessibilityNodeInfo, config: AppConfigManager.AppConfig, packageName: String) {
+        // Double check package to avoid parsing wrong windows
+        if (rootNode.packageName != packageName) {
+             return
+        }
+        
+        DebugLog.i(TAG, "Parsing UI for ${config.appName}")
         val parsedData = mutableMapOf<String, String?>()
         var recognizedArrow: ArrowDirection? = null
+        var arrowFoundNode = false
 
-        // Parse each configured field
         config.fields.forEach { (dataTypeName, resourceId) ->
             if (resourceId.isBlank()) return@forEach
             
-            val node = findNodeByResourceId(rootNode, resourceId)
+            // Try exact match first, then partial
+            var node = findNodeByResourceId(rootNode, resourceId)
+            if (node == null) {
+                // Try finding by just the ID part (e.g. "image_maneuverballoon_maneuver")
+                val idPart = resourceId.substringAfter(":id/")
+                if (idPart.isNotEmpty() && idPart != resourceId) {
+                    node = findNodeByResourceId(rootNode, idPart, partial = true)
+                }
+            }
             
-            // Check if this is an ImageView (arrow)
-            if (node?.className == "android.widget.ImageView") {
-                DebugLog.i(TAG, "Found ImageView: $resourceId")
-                // Try to extract and recognize arrow
-                recognizedArrow = recognizeArrowFrom(node)
-                Log.d(TAG, "Found ImageView at $resourceId: arrow=$recognizedArrow")
+            // Ultimate fallback: Full tree traversal (if still not found and it's important)
+            if (node == null && dataTypeName == HudDataType.DIRECTION_ARROW.name) {
+                 // DebugLog.w(TAG, "Trying fallback search for $resourceId")
+                 node = findNodeRecursiveFallback(rootNode, resourceId)
+            }
+            
+            if (node == null) {
+                // DebugLog.w(TAG, "NOT FOUND: $dataTypeName at $resourceId")
+                if (dataTypeName == HudDataType.DIRECTION_ARROW.name) {
+                    HudService.navDebug.arrowStatus = "Node Not Found"
+                }
+                return@forEach
+            }
+            
+            // DebugLog.i(TAG, "FOUND: $dataTypeName at $resourceId (class=${node.className})")
+            
+            val isArrowField = dataTypeName == HudDataType.DIRECTION_ARROW.name
+            val isImageView = node.className?.toString()?.contains("ImageView") == true
+            
+            if (isArrowField || isImageView) {
+                arrowFoundNode = true
+                DebugLog.i(TAG, "Processing as Image: $resourceId")
+                val arrow = recognizeArrowFrom(node)
+                if (arrow != null) {
+                    recognizedArrow = arrow
+                }
             } else {
-                // Regular text field
-                val value = node?.text?.toString()
+                val value = node.text?.toString()
                 parsedData[dataTypeName] = value
-                
                 if (value != null) {
-                    Log.d(TAG, "Found $dataTypeName ($resourceId): $value")
+                    // DebugLog.i(TAG, "$dataTypeName = '$value'")
                 }
             }
         }
         
-        // If we recognized an arrow, store its HUD code
+        if (debugToastsEnabled) {
+            val status = if (recognizedArrow != null) "Arrow: ${recognizedArrow?.name}" 
+                         else if (arrowFoundNode) "Arrow: Found Node, No Recog"
+                         else "Arrow: Not Found"
+            showDebugToast(status)
+        }
+        
         recognizedArrow?.let { arrow ->
             if (arrow != ArrowDirection.NONE) {
                 HudState.turnIcon = arrow.hudCode
-                Log.d(TAG, "Set turn icon: ${arrow.name} (code=${arrow.hudCode})")
+                DebugLog.i(TAG, "Set turn icon: ${arrow.name}")
             }
         }
 
-        // Update HudState based on parsed data
         updateHudState(parsedData, packageName)
     }
     
-    private var lastScreenshotTime = 0L
-    private val SCREENSHOT_INTERVAL = 1000L // 1 second throttle
+    private var lastToastTime = 0L
+    private var lastArrowCheckTime = 0L
+    private val ARROW_CHECK_INTERVAL = 1000L
+    private var isProcessingArrow = false
 
     private fun recognizeArrowFrom(imageNode: AccessibilityNodeInfo): ArrowDirection? {
         val currentTime = System.currentTimeMillis()
-        if (currentTime - lastScreenshotTime < SCREENSHOT_INTERVAL) {
+        if (currentTime - lastArrowCheckTime < ARROW_CHECK_INTERVAL) {
+            HudService.navDebug.arrowStatus = "Throttled"
             return null
         }
-        lastScreenshotTime = currentTime
+        
+        if (isProcessingArrow) {
+            HudService.navDebug.arrowStatus = "Busy"
+            return null
+        }
+        
+        lastArrowCheckTime = currentTime
+        isProcessingArrow = true
 
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-            try {
+        try {
+            // Get bounds of the arrow ImageView
+            val rect = android.graphics.Rect()
+            imageNode.getBoundsInScreen(rect)
+            
+            if (rect.width() <= 0 || rect.height() <= 0) {
+                HudService.navDebug.arrowStatus = "Invalid bounds"
+                isProcessingArrow = false
+                return null
+            }
+            
+            DebugLog.i(TAG, "Arrow bounds: $rect")
+            
+            // Use takeScreenshot API (Android 11+)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
                 takeScreenshot(
                     android.view.Display.DEFAULT_DISPLAY,
                     mainExecutor,
-                    object : TakeScreenshotCallback {
-                        override fun onSuccess(screenshot: ScreenshotResult) {
-                            DebugLog.i(TAG, "Screenshot OK")
+                    object : android.accessibilityservice.AccessibilityService.TakeScreenshotCallback {
+                        override fun onSuccess(screenshot: android.accessibilityservice.AccessibilityService.ScreenshotResult) {
                             try {
                                 val hardwareBuffer = screenshot.hardwareBuffer
-                                val colorSpace = screenshot.colorSpace
-                                val bitmap = android.graphics.Bitmap.wrapHardwareBuffer(hardwareBuffer, colorSpace)
+                                val bitmap = android.graphics.Bitmap.wrapHardwareBuffer(hardwareBuffer, screenshot.colorSpace)
                                 
                                 if (bitmap != null) {
-                                    // Must copy because HardwareBuffer is closed after this scope
-                                    val copy = bitmap.copy(android.graphics.Bitmap.Config.ARGB_8888, false)
-                                    hardwareBuffer.close()
+                                    // Crop to arrow bounds
+                                    val left = rect.left.coerceAtLeast(0)
+                                    val top = rect.top.coerceAtLeast(0)
+                                    val width = rect.width().coerceAtMost(bitmap.width - left)
+                                    val height = rect.height().coerceAtMost(bitmap.height - top)
                                     
-                                    processScreenshot(copy, imageNode)
+                                    if (width > 0 && height > 0) {
+                                        val cropped = android.graphics.Bitmap.createBitmap(bitmap, left, top, width, height)
+                                        bitmap.recycle()
+                                        hardwareBuffer.close()
+                                        
+                                        processArrowBitmap(cropped)
+                                    } else {
+                                        bitmap.recycle()
+                                        hardwareBuffer.close()
+                                        HudService.navDebug.arrowStatus = "Invalid crop"
+                                        isProcessingArrow = false
+                                    }
                                 } else {
                                     hardwareBuffer.close()
+                                    HudService.navDebug.arrowStatus = "Bitmap null"
+                                    isProcessingArrow = false
                                 }
                             } catch (e: Exception) {
-                                DebugLog.e(TAG, "Screenshot error: ${e.message}")
-                                Log.e(TAG, "Error processing screenshot", e)
+                                DebugLog.e(TAG, "Screenshot processing error: ${e.message}")
+                                HudService.navDebug.arrowStatus = "Error: ${e.message}"
+                                isProcessingArrow = false
                             }
                         }
 
                         override fun onFailure(errorCode: Int) {
-                            DebugLog.e(TAG, "Screenshot fail: $errorCode")
-                            Log.e(TAG, "Screenshot failed with error code: $errorCode")
+                            DebugLog.e(TAG, "Screenshot failed: $errorCode")
+                            HudService.navDebug.arrowStatus = "Screenshot failed: $errorCode"
+                            isProcessingArrow = false
                         }
                     }
                 )
-            } catch (e: Exception) {
-                DebugLog.e(TAG, "Screenshot init fail: ${e.message}")
-                Log.e(TAG, "Failed to initiate screenshot", e)
-            }
-        }
-        return null
-    }
-
-    private fun processScreenshot(screenBitmap: android.graphics.Bitmap, node: AccessibilityNodeInfo) {
-        try {
-            val rect = android.graphics.Rect()
-            node.getBoundsInScreen(rect)
-            
-            // Validate bounds
-            if (rect.width() > 0 && rect.height() > 0) {
-                 // Ensure bounds are within bitmap dimensions
-                 val left = rect.left.coerceAtLeast(0)
-                 val top = rect.top.coerceAtLeast(0)
-                 val width = rect.width().coerceAtMost(screenBitmap.width - left)
-                 val height = rect.height().coerceAtMost(screenBitmap.height - top)
-                 
-                 if (width > 0 && height > 0) {
-                     val cropped = android.graphics.Bitmap.createBitmap(screenBitmap, left, top, width, height)
-                     
-                     // Send to Debug UI
-                     HudService.navDebug.lastArrowBitmap = cropped
-                     DebugLog.i(TAG, "Arrow: ${width}x${height}")
-                     
-                     // Calculate Hash for future recognition
-                     val arrowImg = ArrowImage(cropped)
-                     val hash = arrowImg.getArrowValue()
-                     DebugLog.i(TAG, "Hash: $hash")
-                     Log.d(TAG, "Captured Arrow Hash: $hash")
-                     
-                     // Try to recognize (will likely fail until we add hash)
-                     val recognized = ArrowDirection.recognize(arrowImg)
-                     if (recognized != ArrowDirection.NONE) {
-                         HudState.turnIcon = recognized.hudCode
-                         DebugLog.i(TAG, "Recognized: ${recognized.name}")
-                         Log.d(TAG, "Recognized arrow from Screenshot: $recognized")
-                     } else {
-                         DebugLog.w(TAG, "Not recognized")
-                     }
-                 }
+            } else {
+                HudService.navDebug.arrowStatus = "Android 11+ required"
+                isProcessingArrow = false
             }
         } catch (e: Exception) {
-            DebugLog.e(TAG, "Crop error: ${e.message}")
-            Log.e(TAG, "Error cropping arrow", e)
+            DebugLog.e(TAG, "recognizeArrowFrom error: ${e.message}")
+            HudService.navDebug.arrowStatus = "Error: ${e.message}"
+            isProcessingArrow = false
+        }
+        
+        return null
+    }
+    
+    private fun processArrowBitmap(bitmap: android.graphics.Bitmap) {
+        try {
+            HudService.navDebug.lastArrowBitmap?.recycle()
+            HudService.navDebug.lastArrowBitmap = bitmap
+            
+            val arrowImg = ArrowImage(bitmap)
+            val hash = arrowImg.getArrowValue()
+            DebugLog.i(TAG, "Arrow Hash: $hash")
+            
+            val recognized = ArrowDirection.recognize(arrowImg)
+            if (recognized != ArrowDirection.NONE) {
+                HudState.turnIcon = recognized.hudCode
+                HudService.navDebug.arrowStatus = "Recognized: ${recognized.name} ($hash)"
+                HudState.notifyUpdate()
+            } else {
+                HudService.navDebug.arrowStatus = "Not Recognized ($hash)"
+            }
+        } catch (e: Exception) {
+            DebugLog.e(TAG, "processArrowBitmap error: ${e.message}")
+            HudService.navDebug.arrowStatus = "Process error"
+        } finally {
+            isProcessingArrow = false
         }
     }
 
-    private fun findNodeByResourceId(
-        node: AccessibilityNodeInfo,
-        resourceId: String
-    ): AccessibilityNodeInfo? {
-        // Direct search by viewIdResourceName
-        if (node.viewIdResourceName == resourceId) {
-            return node
+    private fun showDebugToast(message: String) {
+        val now = System.currentTimeMillis()
+        if (now - lastToastTime > 2000) { // Throttle toasts
+            lastToastTime = now
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                try {
+                    android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    DebugLog.e(TAG, "Toast error: ${e.message}")
+                }
+            }
         }
+    }
 
-        // Search children recursively
+    private fun findNodeByResourceId(node: AccessibilityNodeInfo, resourceId: String, partial: Boolean = false): AccessibilityNodeInfo? {
+        val nodeId = node.viewIdResourceName
+        if (nodeId != null) {
+            if (partial) {
+                if (nodeId.endsWith(":id/$resourceId") || nodeId.endsWith("/$resourceId")) return node // Don't recycle node if returning it
+            } else {
+                if (nodeId == resourceId) return node // Don't recycle node if returning it
+            }
+        }
+        
         for (i in 0 until node.childCount) {
             val child = node.getChild(i) ?: continue
-            val result = findNodeByResourceId(child, resourceId)
+            val result = findNodeByResourceId(child, resourceId, partial)
             if (result != null) {
-                child.recycle()
+                // Found it!
+                // If result is NOT child, we can recycle child.
+                // If result IS child, we must NOT recycle child.
+                if (result != child) {
+                    child.recycle()
+                }
                 return result
             }
             child.recycle()
         }
-
+        return null
+    }
+    
+    // Fallback: Traverse entire tree to find node (slower but more reliable for debugging)
+    private fun findNodeRecursiveFallback(node: AccessibilityNodeInfo, resourceId: String): AccessibilityNodeInfo? {
+        val nodeId = node.viewIdResourceName
+        if (nodeId != null && nodeId == resourceId) {
+            return node // Return without recycling
+        }
+        
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            val result = findNodeRecursiveFallback(child, resourceId)
+            if (result != null) {
+                if (result != child) {
+                    child.recycle()
+                }
+                return result
+            }
+            child.recycle()
+        }
         return null
     }
 
     private fun updateHudState(parsedData: Map<String, String?>, packageName: String) {
-        // Update raw data
         HudState.lastPackageName = packageName
         HudState.rawData.clear()
-        parsedData.forEach { (key, value) ->
-            if (value != null) {
-                HudState.rawData[key] = value
-            }
-        }
+        parsedData.forEach { (key, value) -> if (value != null) HudState.rawData[key] = value }
 
-        // Map to specific HudState fields
         parsedData[HudDataType.DISTANCE_TO_TURN.name]?.let { 
             HudState.distanceToTurn = it
-            // Try to parse distance to meters
-            val distanceMeters = parseDistanceToMeters(it)
-            if (distanceMeters != null) {
-                HudState.distanceToTurnMeters = distanceMeters
-            }
+            HudState.distanceToTurnMeters = parseDistanceToMeters(it)
         }
 
         parsedData[HudDataType.NAVIGATION_INSTRUCTION.name]?.let {
-            // Store instruction for turn icon parsing
             HudState.turnIcon = parseTurnDirection(it)
         }
 
-        parsedData[HudDataType.ETA.name]?.let {
-            HudState.eta = it
-        }
-
-        parsedData[HudDataType.REMAINING_TIME.name]?.let {
-            HudState.remainingTime = it
-        }
-
+        parsedData[HudDataType.ETA.name]?.let { HudState.eta = it }
+        parsedData[HudDataType.REMAINING_TIME.name]?.let { HudState.remainingTime = it }
+        
         parsedData[HudDataType.TRAFFIC_SCORE.name]?.let {
-            // Try to extract number from traffic score text
-            val score = it.replace(Regex("[^0-9]"), "").toIntOrNull()
-            HudState.trafficScore = score
+            HudState.trafficScore = it.replace(Regex("[^0-9]"), "").toIntOrNull()
         }
 
         parsedData[HudDataType.SPEED_LIMIT.name]?.let {
-            val limit = it.replace(Regex("[^0-9]"), "").toIntOrNull()
-            if (limit != null) {
-                HudState.speedLimit = limit
-            }
+            HudState.speedLimit = it.replace(Regex("[^0-9]"), "").toIntOrNull()
         }
 
         parsedData[HudDataType.CURRENT_SPEED.name]?.let {
-            val speed = it.replace(Regex("[^0-9]"), "").toIntOrNull()
-            if (speed != null) {
-                HudState.currentSpeed = speed
-            }
+            HudState.currentSpeed = it.replace(Regex("[^0-9]"), "").toIntOrNull() ?: 0
         }
 
-        // Set navigation active if we have distance or instruction
-        HudState.isNavigating = !HudState.distanceToTurn.isNullOrBlank() || 
-                                HudState.eta != null
-
-        // Notify update
+        HudState.isNavigating = !HudState.distanceToTurn.isNullOrBlank() || HudState.eta != null
         HudState.notifyUpdate()
         
-        // Update debug info
         HudService.navDebug.packageName = packageName
         HudService.navDebug.lastUpdateTime = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+        HudService.navDebug.parsedInstruction = HudState.rawData[HudDataType.NAVIGATION_INSTRUCTION.name] ?: ""
+        HudService.navDebug.parsedDistance = HudState.distanceToTurn ?: ""
+        HudService.navDebug.parsedEta = HudState.eta ?: ""
     }
 
     private fun parseDistanceToMeters(distanceText: String): Int? {
-        // Parse "500 m", "1.5 km", etc.
-        val regex = """(\d+(?:[.,]\d+)?)\s*(m|м|km|км)""".toRegex(RegexOption.IGNORE_CASE)
-        val match = regex.find(distanceText) ?: return null
-        
-        val value = match.groupValues[1].replace(",", ".").toFloatOrNull() ?: return null
-        val unit = match.groupValues[2].lowercase()
-        
-        return when (unit) {
-            "km", "км" -> (value * 1000).toInt()
-            "m", "м" -> value.toInt()
-            else -> null
-        }
+        return DistanceFormatter.parseDistance(distanceText)?.first
     }
 
     private fun parseTurnDirection(instruction: String): Int {
-        // Parse turn direction from instruction text
-        // This is a simplified version - you may need to expand it
+        val instr = instruction.lowercase()
         return when {
-            instruction.contains("лев", ignoreCase = true) || 
-            instruction.contains("left", ignoreCase = true) -> 1 // Left
-            
-            instruction.contains("прав", ignoreCase = true) || 
-            instruction.contains("right", ignoreCase = true) -> 2 // Right
-            
-            instruction.contains("прямо", ignoreCase = true) || 
-            instruction.contains("straight", ignoreCase = true) -> 0 // Straight
-            
+            "sharp left" in instr || "резко налево" in instr -> 7
+            "sharp right" in instr || "резко направо" in instr -> 8
+            "turn left" in instr || "поверните налево" in instr || "налево" in instr -> 1
+            "turn right" in instr || "поверните направо" in instr || "направо" in instr -> 6
+            "keep left" in instr || "левее" in instr || "держаться левее" in instr -> 4
+            "keep right" in instr || "правее" in instr || "держаться правее" in instr -> 5
+            "easy left" in instr || "плавно налево" in instr -> 2
+            "easy right" in instr || "плавно направо" in instr -> 3
+            "straight" in instr || "прямо" in instr -> 0
             else -> 0
         }
     }
-
-    override fun onInterrupt() {
-        Log.d(TAG, "Service interrupted")
-    }
+    
+    override fun onInterrupt() {}
 }

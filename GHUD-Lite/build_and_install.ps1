@@ -58,29 +58,51 @@ if (-not (Test-Path $adbPath)) {
     exit 1
 }
 
-$deviceFound = $false
-$retries = 0
-$maxRetries = 30 # Wait up to 30 seconds
+# Проверяем, есть ли уже подключенные устройства
+$devices = & $adbPath devices
+$deviceLines = $devices | Select-Object -Skip 1 | Where-Object { $_ -match '\tdevice$' }
 
-while (-not $deviceFound -and $retries -lt $maxRetries) {
-    $devices = & $adbPath devices
-    # Check if output contains a device (excluding the header "List of devices attached")
-    $deviceLines = $devices | Select-Object -Skip 1 | Where-Object { $_ -match '\tdevice$' }
+$deviceFound = $false
+
+if ($deviceLines) {
+    $deviceFound = $true
+    Write-Host "Device found!" -ForegroundColor Green
+}
+else {
+    # Пытаемся подключиться по WiFi
+    Write-Host "No USB devices found. Trying WiFi connection..." -ForegroundColor Yellow
     
-    if ($deviceLines) {
-        $deviceFound = $true
-        Write-Host "Device found!" -ForegroundColor Green
-    }
-    else {
-        Write-Host "Waiting for device... ($($maxRetries - $retries)s)" -ForegroundColor DarkYellow
-        Start-Sleep -Seconds 1
-        $retries++
+    # Запрашиваем IP адрес устройства
+    $deviceIP = Read-Host "Enter device IP address (or press Enter to skip)"
+    
+    if ($deviceIP) {
+        Write-Host "Connecting to $deviceIP`:5555..." -ForegroundColor Yellow
+        & $adbPath connect "$deviceIP`:5555"
+        
+        Start-Sleep -Seconds 2
+        
+        # Проверяем подключение
+        $devices = & $adbPath devices
+        $deviceLines = $devices | Select-Object -Skip 1 | Where-Object { $_ -match '\tdevice$' }
+        
+        if ($deviceLines) {
+            $deviceFound = $true
+            Write-Host "WiFi device connected!" -ForegroundColor Green
+        }
+        else {
+            Write-Host "Failed to connect via WiFi" -ForegroundColor Red
+        }
     }
 }
 
 if (-not $deviceFound) {
-    Write-Host "Warning: No devices found after waiting." -ForegroundColor Yellow
-    Write-Host "Connect device via USB and enable USB Debugging." -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Warning: No devices found." -ForegroundColor Yellow
+    Write-Host "To enable WiFi debugging:" -ForegroundColor Yellow
+    Write-Host "1. Connect device via USB first" -ForegroundColor Yellow
+    Write-Host "2. Run: adb tcpip 5555" -ForegroundColor Yellow
+    Write-Host "3. Find device IP in Settings > About > Status" -ForegroundColor Yellow
+    Write-Host "4. Run this script again" -ForegroundColor Yellow
     
     $response = Read-Host "Continue installation anyway (y/n)?"
     if ($response -ne 'y') {
