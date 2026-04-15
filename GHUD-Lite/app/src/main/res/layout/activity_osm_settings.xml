@@ -20,32 +20,9 @@
         android:textSize="14sp"
         android:layout_marginBottom="16dp"/>
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="TomTom API key (для speed data)"
-        android:textStyle="bold"
-        android:layout_marginBottom="4dp" />
-
-    <EditText
-        android:id="@+id/editTomTomApiKey"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Введите TomTom API key"
-        android:inputType="text"
-        android:layout_marginBottom="8dp" />
-
-    <Button
-        android:id="@+id/btnSaveTomTomApiKey"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Сохранить TomTom API key"
-        android:layout_marginBottom="12dp" />
-
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerOsmApis"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"/>
+        android:layout_height="match_parent"/>
 
 </LinearLayout>

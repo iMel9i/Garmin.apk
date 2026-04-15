@@ -31,8 +31,6 @@ class HudService : Service(), LocationListener {
         private const val PREFS_NAME = "HudPrefs"
         private const val KEY_DEVICE_ADDRESS = "device_address"
         private const val KEY_DEVICE_NAME = "device_name"
-        private const val KEY_SPEED_DATA_PROVIDER = "speed_data_provider"
-        private const val KEY_TOMTOM_API_KEY = "tomtom_api_key"
         private const val RECONNECT_DELAY_MS = 5000L
         private const val ACTION_STOP_SERVICE = "STOP_SERVICE"
         
@@ -347,17 +345,12 @@ class HudService : Service(), LocationListener {
         osmDebug.lastLocation = String.format("%.6f, %.6f", location.latitude, location.longitude)
         osmDebug.lastUpdateTime = timeFormat.format(Date())
 
-        configureSpeedDataProvider()
+        osmClient.getSpeedLimit(location.latitude, location.longitude) { limit ->
+            currentOsmSpeedLimit = limit
+            osmDebug.currentSpeedLimit = limit
 
-        osmClient.getSpeedData(location.latitude, location.longitude) { speedData ->
-            currentOsmSpeedLimit = speedData.maxSpeed
-            osmDebug.currentSpeedLimit = speedData.maxSpeed
-
-            // Update Universal State (provider-dependent)
-            HudState.speedLimit = speedData.maxSpeed
-            if (speedData.currentSpeed != null && speedData.currentSpeed > 0) {
-                HudState.currentSpeed = speedData.currentSpeed
-            }
+            // Update Universal State
+            HudState.speedLimit = limit
             checkSpeeding()
         }
         
@@ -367,18 +360,6 @@ class HudService : Service(), LocationListener {
         }
     }
 
-    private fun configureSpeedDataProvider() {
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val providerValue = prefs.getInt(KEY_SPEED_DATA_PROVIDER, 0)
-        val provider = if (providerValue == 1) {
-            OsmClient.SpeedDataProvider.TOMTOM
-        } else {
-            OsmClient.SpeedDataProvider.OSM
-        }
-        osmClient.setSpeedDataProvider(provider)
-        osmClient.setTomTomApiKey(prefs.getString(KEY_TOMTOM_API_KEY, ""))
-    }
-    
     private fun checkSpeeding() {
         val limit = HudState.speedLimit
         val speed = HudState.currentSpeed

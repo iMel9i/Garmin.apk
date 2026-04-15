@@ -39,22 +39,6 @@
             android:layout_marginBottom="16dp">
 
             <TextView
-                android:id="@+id/textSpeedApiProvider"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Speed API Provider: OSM"
-                android:textSize="12sp"
-                android:fontFamily="monospace"
-                android:textStyle="bold"
-                android:layout_marginBottom="4dp" />
-
-            <SeekBar
-                android:id="@+id/seekSpeedApiProvider"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp" />
-
-            <TextView
                 android:id="@+id/osmLocation"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

@@ -18,7 +18,6 @@ class DebugActivity : AppCompatActivity() {
     private var currentArrowHash: Long? = null
     private lateinit var hud: HudEngine
     private data class LaneOption(val label: String, val mask: Int)
-    private val speedProviders = listOf("OSM", "TomTom")
     
     private val updateRunnable = object : Runnable {
         override fun run() {
@@ -66,29 +65,6 @@ class DebugActivity : AppCompatActivity() {
             android.widget.Toast.makeText(this, "Toasts: ${NavigationAccessibilityService.debugToastsEnabled}", android.widget.Toast.LENGTH_SHORT).show()
             updateDebugInfo()
         }
-
-        val prefs = getSharedPreferences("HudPrefs", MODE_PRIVATE)
-        val speedProviderSeek = findViewById<android.widget.SeekBar>(R.id.seekSpeedApiProvider)
-        val speedProviderText = findViewById<TextView>(R.id.textSpeedApiProvider)
-        speedProviderSeek.max = speedProviders.lastIndex
-        speedProviderSeek.progress = prefs.getInt("speed_data_provider", 0).coerceIn(0, speedProviders.lastIndex)
-        speedProviderText.text = "Speed API Provider: ${speedProviders[speedProviderSeek.progress]}"
-        speedProviderSeek.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
-                speedProviderText.text = "Speed API Provider: ${speedProviders[progress]}"
-                if (fromUser) {
-                    prefs.edit().putInt("speed_data_provider", progress).apply()
-                }
-            }
-            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {
-                android.widget.Toast.makeText(
-                    this@DebugActivity,
-                    "Speed API set to ${speedProviders[seekBar?.progress ?: 0]}",
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
-            }
-        })
         
         // Arrow Training Setup
         val spinner = findViewById<android.widget.Spinner>(R.id.spinnerArrowTypes)
