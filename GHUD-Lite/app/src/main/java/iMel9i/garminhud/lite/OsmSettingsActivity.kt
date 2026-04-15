@@ -14,6 +14,7 @@ class OsmSettingsActivity : AppCompatActivity() {
     
     private lateinit var configManager: OsmConfigManager
     private lateinit var adapter: OsmConfigAdapter
+    private val hudPrefs by lazy { getSharedPreferences("HudPrefs", MODE_PRIVATE) }
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,6 +23,15 @@ class OsmSettingsActivity : AppCompatActivity() {
         title = "Настройки OpenStreetMap"
         
         configManager = OsmConfigManager(this)
+
+        val editTomTomApiKey = findViewById<EditText>(R.id.editTomTomApiKey)
+        val btnSaveTomTomApiKey = findViewById<Button>(R.id.btnSaveTomTomApiKey)
+        editTomTomApiKey.setText(hudPrefs.getString("tomtom_api_key", ""))
+        btnSaveTomTomApiKey.setOnClickListener {
+            val key = editTomTomApiKey.text?.toString()?.trim().orEmpty()
+            hudPrefs.edit().putString("tomtom_api_key", key).apply()
+            Toast.makeText(this, "TomTom API key saved", Toast.LENGTH_SHORT).show()
+        }
         
         val recyclerView = findViewById<RecyclerView>(R.id.recyclerOsmApis)
         recyclerView.layoutManager = LinearLayoutManager(this)

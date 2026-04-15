@@ -39,6 +39,22 @@
             android:layout_marginBottom="16dp">
 
             <TextView
+                android:id="@+id/textSpeedApiProvider"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Speed API Provider: OSM"
+                android:textSize="12sp"
+                android:fontFamily="monospace"
+                android:textStyle="bold"
+                android:layout_marginBottom="4dp" />
+
+            <SeekBar
+                android:id="@+id/seekSpeedApiProvider"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
                 android:id="@+id/osmLocation"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -508,6 +524,47 @@
                 android:textColor="#FFFFFF"/>
         </LinearLayout>
 
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="HUD Library Icons/Symbols"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:background="#D1C4E9"
+            android:padding="8dp"
+            android:layout_marginBottom="8dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#F5F5F5"
+            android:padding="12dp"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Select any icon/symbol from HudIcon library and send it to Bluetooth HUD"
+                android:textSize="12sp"
+                android:fontFamily="monospace"
+                android:layout_marginBottom="8dp" />
+
+            <Spinner
+                android:id="@+id/spinnerHudIcons"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp" />
+
+            <Button
+                android:id="@+id/btnSendHudIcon"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Send Selected Icon/Symbol to HUD"
+                android:backgroundTint="#7E57C2"
+                android:textColor="#FFFFFF" />
+        </LinearLayout>
+
         <!-- HUD Debug Section -->
         <TextView
             android:layout_width="match_parent"
@@ -597,6 +654,101 @@
                 android:text="Last Update: -"
                 android:textSize="12sp"
                 android:fontFamily="monospace" />
+        </LinearLayout>
+
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#ECEFF1"
+            android:padding="12dp"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Manual HUD Direction (Bluetooth)"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <EditText
+                android:id="@+id/inputManualType"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Type (e.g. 128 or 0x80)"
+                android:inputType="text"
+                android:singleLine="true"
+                android:layout_marginBottom="8dp" />
+
+            <EditText
+                android:id="@+id/inputManualAngle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Angle (e.g. 64 or 0x40)"
+                android:inputType="text"
+                android:singleLine="true"
+                android:layout_marginBottom="8dp" />
+
+            <Button
+                android:id="@+id/btnSendManualDirection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Send Type/Angle to HUD"
+                android:backgroundTint="#607D8B"
+                android:textColor="#FFFFFF" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#E8EAF6"
+            android:padding="12dp"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Manual eLane (Lane Masks)"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Arrow Mask (active lane)"
+                android:textSize="12sp"
+                android:fontFamily="monospace"
+                android:layout_marginBottom="4dp" />
+
+            <Spinner
+                android:id="@+id/spinnerLaneArrow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Outline Mask (all visible lanes)"
+                android:textSize="12sp"
+                android:fontFamily="monospace"
+                android:layout_marginBottom="4dp" />
+
+            <Spinner
+                android:id="@+id/spinnerLaneOutline"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp" />
+
+            <Button
+                android:id="@+id/btnSendLaneMasks"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Send eLane Masks to HUD"
+                android:backgroundTint="#3949AB"
+                android:textColor="#FFFFFF" />
         </LinearLayout>
 
         <Button

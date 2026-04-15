@@ -1,6 +1,7 @@
 package iMel9i.garminhud.lite
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -9,11 +10,15 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import android.media.projection.MediaProjectionManager
 import android.content.Context
+import androidx.core.content.ContextCompat
 
 class DebugActivity : AppCompatActivity() {
     
     private val updateHandler = Handler(Looper.getMainLooper())
     private var currentArrowHash: Long? = null
+    private lateinit var hud: HudEngine
+    private data class LaneOption(val label: String, val mask: Int)
+    private val speedProviders = listOf("OSM", "TomTom")
     
     private val updateRunnable = object : Runnable {
         override fun run() {
@@ -27,6 +32,8 @@ class DebugActivity : AppCompatActivity() {
         setContentView(R.layout.activity_debug)
         
         title = "Debug Information"
+
+        hud = HudEngineFactory.create(this)
         
         val btnCapture = findViewById<Button>(R.id.btnStartScreenCapture)
         btnCapture.setOnClickListener {
@@ -59,6 +66,29 @@ class DebugActivity : AppCompatActivity() {
             android.widget.Toast.makeText(this, "Toasts: ${NavigationAccessibilityService.debugToastsEnabled}", android.widget.Toast.LENGTH_SHORT).show()
             updateDebugInfo()
         }
+
+        val prefs = getSharedPreferences("HudPrefs", MODE_PRIVATE)
+        val speedProviderSeek = findViewById<android.widget.SeekBar>(R.id.seekSpeedApiProvider)
+        val speedProviderText = findViewById<TextView>(R.id.textSpeedApiProvider)
+        speedProviderSeek.max = speedProviders.lastIndex
+        speedProviderSeek.progress = prefs.getInt("speed_data_provider", 0).coerceIn(0, speedProviders.lastIndex)
+        speedProviderText.text = "Speed API Provider: ${speedProviders[speedProviderSeek.progress]}"
+        speedProviderSeek.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
+                speedProviderText.text = "Speed API Provider: ${speedProviders[progress]}"
+                if (fromUser) {
+                    prefs.edit().putInt("speed_data_provider", progress).apply()
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {
+                android.widget.Toast.makeText(
+                    this@DebugActivity,
+                    "Speed API set to ${speedProviders[seekBar?.progress ?: 0]}",
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+            }
+        })
         
         // Arrow Training Setup
         val spinner = findViewById<android.widget.Spinner>(R.id.spinnerArrowTypes)
@@ -77,7 +107,106 @@ class DebugActivity : AppCompatActivity() {
                  android.widget.Toast.makeText(this, "No arrow hash available", android.widget.Toast.LENGTH_SHORT).show()
             }
         }
+
+        val hudIconSpinner = findViewById<android.widget.Spinner>(R.id.spinnerHudIcons)
+        val hudIconAdapter = android.widget.ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            HudIcon.values().map { "${it.displayName} (type=0x${it.type.toString(16)}, angle=0x${it.angle.toString(16)})" }
+        )
+        hudIconAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        hudIconSpinner.adapter = hudIconAdapter
+
+        findViewById<Button>(R.id.btnSendHudIcon).setOnClickListener {
+            val selectedIcon = HudIcon.values()[hudIconSpinner.selectedItemPosition]
+
+            if (!hud.isConnected()) {
+                val started = tryConnectSavedHud(showToastOnFail = true)
+                if (started) {
+                    android.widget.Toast.makeText(this, "Connecting to HUD... tap send again", android.widget.Toast.LENGTH_SHORT).show()
+                }
+                return@setOnClickListener
+            }
+
+            if (selectedIcon.isCamera) {
+                hud.showCameraIcon()
+            } else {
+                hud.setDirection(selectedIcon.type, selectedIcon.angle)
+            }
+            android.widget.Toast.makeText(
+                this,
+                "Sent ${selectedIcon.displayName} (type=0x${Integer.toHexString(selectedIcon.type)}, angle=0x${Integer.toHexString(selectedIcon.angle)})",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
+        }
+
+        val laneOptions = listOf(
+            LaneOption("NONE (0x00)", 0x00),
+            LaneOption("DotsRight (0x01)", 0x01),
+            LaneOption("OuterRight (0x02)", 0x02),
+            LaneOption("MiddleRight (0x04)", 0x04),
+            LaneOption("InnerRight (0x08)", 0x08),
+            LaneOption("InnerLeft (0x10)", 0x10),
+            LaneOption("MiddleLeft (0x20)", 0x20),
+            LaneOption("OuterLeft (0x40)", 0x40),
+            LaneOption("DotsLeft (0x80)", 0x80)
+        )
+        val laneArrowSpinner = findViewById<android.widget.Spinner>(R.id.spinnerLaneArrow)
+        val laneOutlineSpinner = findViewById<android.widget.Spinner>(R.id.spinnerLaneOutline)
+        val laneAdapter = android.widget.ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            laneOptions.map { it.label }
+        )
+        laneAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        laneArrowSpinner.adapter = laneAdapter
+        laneOutlineSpinner.adapter = laneAdapter
+        laneOutlineSpinner.setSelection(1) // OuterRight is a reasonable default outline
+
+        findViewById<Button>(R.id.btnSendLaneMasks).setOnClickListener {
+            val arrowMask = laneOptions[laneArrowSpinner.selectedItemPosition].mask
+            val outlineMask = laneOptions[laneOutlineSpinner.selectedItemPosition].mask
+
+            if (!hud.isConnected()) {
+                val started = tryConnectSavedHud(showToastOnFail = true)
+                if (started) {
+                    android.widget.Toast.makeText(this, "Connecting to HUD... tap send again", android.widget.Toast.LENGTH_SHORT).show()
+                }
+                return@setOnClickListener
+            }
+
+            hud.setLanes(arrowMask, outlineMask)
+            android.widget.Toast.makeText(
+                this,
+                "Sent lanes arrow=0x${Integer.toHexString(arrowMask)} outline=0x${Integer.toHexString(outlineMask)}",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
+        }
         
+        findViewById<Button>(R.id.btnSendManualDirection).setOnClickListener {
+            val typeText = findViewById<android.widget.EditText>(R.id.inputManualType).text?.toString()?.trim().orEmpty()
+            val angleText = findViewById<android.widget.EditText>(R.id.inputManualAngle).text?.toString()?.trim().orEmpty()
+
+            val type = parseFlexibleInt(typeText)
+            val angle = parseFlexibleInt(angleText)
+
+            if (type == null || angle == null) {
+                android.widget.Toast.makeText(this, "Invalid type/angle. Use decimal or 0xHEX", android.widget.Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            if (!hud.isConnected()) {
+                val started = tryConnectSavedHud(showToastOnFail = true)
+                if (started) {
+                    android.widget.Toast.makeText(this, "Connecting to HUD... tap send again", android.widget.Toast.LENGTH_SHORT).show()
+                }
+                return@setOnClickListener
+            }
+
+            hud.setDirection(type, angle)
+            android.widget.Toast.makeText(this, "Sent type=0x${Integer.toHexString(type)} angle=0x${Integer.toHexString(angle)}", android.widget.Toast.LENGTH_SHORT).show()
+        }
+
         updateDebugInfo()
     }
 
@@ -107,6 +236,44 @@ class DebugActivity : AppCompatActivity() {
         }
     }
     
+    private fun parseFlexibleInt(input: String): Int? {
+        if (input.isBlank()) return null
+        return try {
+            if (input.startsWith("0x", true)) input.substring(2).toInt(16) else input.toInt()
+        } catch (_: NumberFormatException) {
+            null
+        }
+    }
+
+    private fun tryConnectSavedHud(showToastOnFail: Boolean): Boolean {
+        if (hud.isConnected()) return true
+
+        if (Build.VERSION.SDK_INT >= 31) {
+            val hasBtConnect = ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.BLUETOOTH_CONNECT
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (!hasBtConnect) {
+                if (showToastOnFail) {
+                    android.widget.Toast.makeText(this, "Bluetooth permission is missing", android.widget.Toast.LENGTH_SHORT).show()
+                }
+                return false
+            }
+        }
+
+        val prefs = getSharedPreferences("HudPrefs", MODE_PRIVATE)
+        val address = prefs.getString("device_address", null)
+        if (address.isNullOrBlank()) {
+            if (showToastOnFail) {
+                android.widget.Toast.makeText(this, "Select HUD device in Main screen first", android.widget.Toast.LENGTH_SHORT).show()
+            }
+            return false
+        }
+
+        hud.connectToDevice(address)
+        return true
+    }
+
     private fun updateDebugInfo() {
         // OSM Debug
         findViewById<TextView>(R.id.osmLocation).text = "Location: ${HudService.osmDebug.lastLocation}"

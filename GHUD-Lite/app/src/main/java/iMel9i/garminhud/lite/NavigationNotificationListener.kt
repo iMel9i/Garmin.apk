@@ -226,7 +226,7 @@ class NavigationNotificationListener : NotificationListenerService() {
             arrowBitmap = picture
         } else {
             // Try to extract bitmap from RemoteViews (like old Google Maps approach)
-            arrowBitmap = extractBitmapFromRemoteViews(notification)
+            arrowBitmap = extractBitmapFromRemoteViews(notification, sbn.packageName)
         }
         
         if (arrowBitmap != null) {
@@ -280,70 +280,280 @@ class NavigationNotificationListener : NotificationListenerService() {
         }
     }
     
-    private fun extractBitmapFromRemoteViews(notification: android.app.Notification): android.graphics.Bitmap? {
+    private data class ArrowCandidate(
+        val bitmap: android.graphics.Bitmap,
+        val bounds: android.graphics.Rect,
+        val ordinal: Int
+    )
+
+    private data class ArrowMetrics(
+        val whiteRatio: Double,
+        val componentDominance: Double,
+        val sizeScore: Double,
+        val aspectPenalty: Double,
+        val positionScore: Double,
+        val totalScore: Double
+    )
+
+    private fun extractBitmapFromRemoteViews(
+        notification: android.app.Notification,
+        packageName: String
+    ): android.graphics.Bitmap? {
         try {
             // Try bigContentView first (Yandex uses this), then contentView
             val views = notification.bigContentView ?: notification.contentView ?: return null
-            
+
             DebugLog.i(TAG, "Attempting to extract bitmap from RemoteViews by applying to View")
-            
+
             // Apply RemoteViews to actual View hierarchy
             val context = this
             val inflatedView = views.apply(context, null)
-            
-            // Search for ImageView with arrow
-            val arrowBitmap = findArrowImageView(inflatedView)
-            
-            if (arrowBitmap != null) {
-                DebugLog.i(TAG, "Found arrow in ImageView: ${arrowBitmap.width}x${arrowBitmap.height}")
-                return arrowBitmap
+
+            // Collect all candidate ImageViews, then choose the whitest one
+            val candidates = mutableListOf<ArrowCandidate>()
+            collectArrowImageCandidates(inflatedView, candidates)
+
+            if (candidates.isEmpty()) {
+                DebugLog.w(TAG, "Could not find arrow ImageView in notification")
+                return null
             }
-            
-            DebugLog.w(TAG, "Could not find arrow ImageView in notification")
+
+            val scored = candidates.map { candidate ->
+                candidate to calculateArrowMetrics(candidate, packageName)
+            }.sortedByDescending { it.second.totalScore }
+
+            // Debug top 3 candidates
+            scored.take(3).forEachIndexed { i, (candidate, metrics) ->
+                DebugLog.d(
+                    TAG,
+                    "Top${i + 1}: ${candidate.bitmap.width}x${candidate.bitmap.height}, " +
+                        "white=${"%.3f".format(metrics.whiteRatio)}, " +
+                        "comp=${"%.3f".format(metrics.componentDominance)}, " +
+                        "pos=${"%.3f".format(metrics.positionScore)}, " +
+                        "score=${"%.3f".format(metrics.totalScore)}"
+                )
+                saveCandidateDebugBitmap(candidate.bitmap, i + 1, metrics.totalScore)
+            }
+
+            val bestBitmap = scored.firstOrNull()?.first?.bitmap
+
+            // Recycle non-selected candidates to avoid bitmap leaks
+            for (candidate in candidates) {
+                if (candidate.bitmap !== bestBitmap && !candidate.bitmap.isRecycled) {
+                    candidate.bitmap.recycle()
+                }
+            }
+
+            if (bestBitmap != null) {
+                val bestMetrics = scored.first().second
+                DebugLog.i(
+                    TAG,
+                    "Selected white arrow: ${bestBitmap.width}x${bestBitmap.height}, " +
+                        "white=${"%.3f".format(bestMetrics.whiteRatio)}, score=${"%.3f".format(bestMetrics.totalScore)}"
+                )
+            }
+
+            return bestBitmap
         } catch (e: Exception) {
             DebugLog.e(TAG, "Failed to extract bitmap from RemoteViews: ${e.message}")
             e.printStackTrace()
         }
-        
+
         return null
     }
-    
-    private fun findArrowImageView(view: android.view.View): android.graphics.Bitmap? {
-        // If this is an ImageView, check if it contains an arrow
+
+    private fun collectArrowImageCandidates(view: android.view.View, out: MutableList<ArrowCandidate>) {
+        // If this is an ImageView, check if it contains an arrow-like icon
         if (view is android.widget.ImageView) {
             val drawable = view.drawable
             if (drawable != null) {
                 val bitmap = ImageUtils.drawableToBitmap(drawable)
                 if (bitmap != null) {
-                    // Check if this looks like an arrow (square-ish, reasonable size)
                     val width = bitmap.width
                     val height = bitmap.height
-                    
+
                     if (width > 30 && height > 30 && width < 500 && height < 500) {
                         val aspectRatio = width.toFloat() / height.toFloat()
                         if (aspectRatio in 0.5f..2.0f) {
-                            DebugLog.d(TAG, "Found potential arrow ImageView: ${width}x${height}")
-                            return bitmap
+                            val rect = android.graphics.Rect()
+                            val hasRect = view.getGlobalVisibleRect(rect)
+                            val bounds = if (hasRect) rect else android.graphics.Rect(0, 0, 0, 0)
+                            DebugLog.d(TAG, "Found potential arrow ImageView: ${width}x${height} @ $bounds")
+                            out.add(ArrowCandidate(bitmap, bounds, out.size))
                         }
                     }
                 }
             }
         }
-        
+
         // Recursively search children
         if (view is android.view.ViewGroup) {
             for (i in 0 until view.childCount) {
-                val child = view.getChildAt(i)
-                val result = findArrowImageView(child)
-                if (result != null) {
-                    return result
-                }
+                collectArrowImageCandidates(view.getChildAt(i), out)
             }
         }
-        
-        return null
     }
-    
+
+    private fun calculateArrowMetrics(candidate: ArrowCandidate, packageName: String): ArrowMetrics {
+        val bitmap = candidate.bitmap
+        val (minV, maxS) = when {
+            packageName.startsWith("ru.yandex") -> 0.78f to 0.26f
+            packageName.contains("google") -> 0.82f to 0.20f
+            else -> 0.80f to 0.22f
+        }
+
+        val step = if (bitmap.width * bitmap.height > 120_000) 2 else 1
+        val whiteMask = Array((bitmap.height + step - 1) / step) { BooleanArray((bitmap.width + step - 1) / step) }
+
+        var whitePixels = 0
+        var opaquePixels = 0
+
+        var yi = 0
+        var y = 0
+        while (y < bitmap.height) {
+            var xi = 0
+            var x = 0
+            while (x < bitmap.width) {
+                val p = bitmap.getPixel(x, y)
+                val a = (p ushr 24) and 0xff
+                if (a > 30) {
+                    opaquePixels++
+                    if (isWhitePixelHsv(p, minV, maxS)) {
+                        whiteMask[yi][xi] = true
+                        whitePixels++
+                    }
+                }
+                xi++
+                x += step
+            }
+            yi++
+            y += step
+        }
+
+        val whiteRatio = if (opaquePixels == 0) 0.0 else whitePixels.toDouble() / opaquePixels.toDouble()
+        val componentDominance = calculateLargestComponentDominance(whiteMask, whitePixels)
+
+        val minSide = minOf(bitmap.width, bitmap.height).toDouble()
+        val sizeScore = (minSide / 220.0).coerceIn(0.0, 1.0)
+        val aspectRatio = bitmap.width.toDouble() / bitmap.height.toDouble()
+        val aspectPenalty = kotlin.math.abs(aspectRatio - 1.0).coerceAtMost(1.0)
+
+        val positionScore = calculatePositionScore(candidate.bounds, packageName)
+
+        val totalScore =
+            (whiteRatio * 0.55) +
+            (componentDominance * 0.25) +
+            (positionScore * 0.20) +
+            (sizeScore * 0.12) -
+            (aspectPenalty * 0.12)
+
+        return ArrowMetrics(
+            whiteRatio = whiteRatio,
+            componentDominance = componentDominance,
+            sizeScore = sizeScore,
+            aspectPenalty = aspectPenalty,
+            positionScore = positionScore,
+            totalScore = totalScore
+        )
+    }
+
+    private fun isWhitePixelHsv(pixel: Int, minV: Float, maxS: Float): Boolean {
+        val hsv = FloatArray(3)
+        android.graphics.Color.colorToHSV(pixel, hsv)
+        val value = hsv[2]
+        val saturation = hsv[1]
+        return value >= minV && saturation <= maxS
+    }
+
+    private fun calculateLargestComponentDominance(mask: Array<BooleanArray>, whitePixels: Int): Double {
+        if (whitePixels <= 0) return 0.0
+
+        val h = mask.size
+        val w = if (h == 0) 0 else mask[0].size
+        if (w == 0) return 0.0
+
+        val visited = Array(h) { BooleanArray(w) }
+        var largest = 0
+
+        val qx = IntArray(h * w)
+        val qy = IntArray(h * w)
+
+        for (y in 0 until h) {
+            for (x in 0 until w) {
+                if (!mask[y][x] || visited[y][x]) continue
+
+                var head = 0
+                var tail = 0
+                qx[tail] = x
+                qy[tail] = y
+                tail++
+                visited[y][x] = true
+
+                var size = 0
+                while (head < tail) {
+                    val cx = qx[head]
+                    val cy = qy[head]
+                    head++
+                    size++
+
+                    val neighbors = arrayOf(
+                        cx - 1 to cy,
+                        cx + 1 to cy,
+                        cx to cy - 1,
+                        cx to cy + 1
+                    )
+
+                    for ((nx, ny) in neighbors) {
+                        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue
+                        if (!mask[ny][nx] || visited[ny][nx]) continue
+                        visited[ny][nx] = true
+                        qx[tail] = nx
+                        qy[tail] = ny
+                        tail++
+                    }
+                }
+
+                if (size > largest) largest = size
+            }
+        }
+
+        return largest.toDouble() / whitePixels.toDouble()
+    }
+
+    private fun calculatePositionScore(bounds: android.graphics.Rect, packageName: String): Double {
+        if (bounds.width() <= 0 || bounds.height() <= 0) return 0.5
+
+        // Soft priors by app: active maneuver icon is usually in top area.
+        val centerY = bounds.exactCenterY()
+        val height = bounds.bottom.toFloat().coerceAtLeast(1f)
+        val yRatio = (centerY / height).coerceIn(0f, 1f)
+
+        val preferred = when {
+            packageName.startsWith("ru.yandex") -> 0.22f
+            packageName.contains("google") -> 0.28f
+            else -> 0.30f
+        }
+
+        val distance = kotlin.math.abs(yRatio - preferred)
+        return (1.0 - (distance * 2.0)).coerceIn(0.0, 1.0)
+    }
+
+    private fun saveCandidateDebugBitmap(bitmap: android.graphics.Bitmap, rank: Int, score: Double) {
+        try {
+            val dir = java.io.File(getExternalFilesDir(null), "debug_arrow_candidates")
+            if (!dir.exists()) dir.mkdirs()
+
+            val timestamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss_SSS", java.util.Locale.US)
+                .format(java.util.Date())
+            val file = java.io.File(dir, "cand_${timestamp}_r${rank}_s${"%.3f".format(score)}.png")
+            java.io.FileOutputStream(file).use { out ->
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)
+            }
+        } catch (_: Exception) {
+            // Ignore debug saving errors
+        }
+    }
+
     private fun extractDistance(text: String?): String? {
         if (text == null) return null
         
