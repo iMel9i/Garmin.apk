@@ -28,9 +28,9 @@ class OsmConfigManager(context: Context) {
             OsmApiConfig(
                 dataType = HudDataType.SPEED_LIMIT,
                 enabled = true,
-                apiUrl = "https://overpass-api.de/api/interpreter",
+                apiUrl = "https://overpass-turbo.eu/api/interpreter",
                 query = """[out:json];
-way(around:{radius}, {lat}, {lon})["maxspeed"];
+way(around:{{radius}}, {{centerLat}}, {{centerLon}})["maxspeed"];
 out tags;""",
                 searchRadius = 20,
                 parseField = "elements[0].tags.maxspeed"
@@ -38,11 +38,11 @@ out tags;""",
             OsmApiConfig(
                 dataType = HudDataType.DISTANCE_TO_CAMERA,
                 enabled = true,
-                apiUrl = "https://overpass-api.de/api/interpreter",
+                apiUrl = "https://overpass-turbo.eu/api/interpreter",
                 query = """[out:json];
 (
-  node(around:{radius}, {lat}, {lon})["man_made"="surveillance"];
-  node(around:{radius}, {lat}, {lon})["highway"="speed_camera"];
+  node(around:{{radius}}, {{centerLat}}, {{centerLon}})["man_made"="surveillance"];
+  node(around:{{radius}}, {{centerLat}}, {{centerLon}})["highway"="speed_camera"];
 );
 out body;""",
                 searchRadius = 1000,
