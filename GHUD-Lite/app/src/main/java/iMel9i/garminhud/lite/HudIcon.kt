@@ -63,7 +63,7 @@ enum class HudIcon(val id: String, val displayName: String, val type: Int, val a
     // ==========================================
     // Special
     // ==========================================
-    CAMERA("camera", "Speed Camera", 0x80, 0x00, true); // Uses special flag in setSpeedWithLimit
+    CAMERA("camera", "Speed Camera", 0x04, 0x01, true); // Uses special flag in setSpeedWithLimit
 
     companion object {
         fun fromId(id: String): HudIcon? = values().find { it.id == id }
