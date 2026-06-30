@@ -378,6 +378,7 @@ class NavigationNotificationListener : NotificationListenerService() {
             }.sortedByDescending { it.second.totalScore }
 
             val scored = if (scoredAll.size > 4) scoredAll.dropLast(4) else scoredAll
+            val displayOrderedScored = scored.sortedBy { it.first.ordinal }
 
             DebugLog.i(TAG, "Arrow candidates filtered: total=${scoredAll.size}, used=${scored.size}, droppedTail=${(scoredAll.size - scored.size).coerceAtLeast(0)}")
 
@@ -392,14 +393,14 @@ class NavigationNotificationListener : NotificationListenerService() {
                 )
             }
 
-            val laneScored = scored
+            val laneScored = displayOrderedScored
 
             val maneuverCandidateOrdinal = scored.firstOrNull()?.first?.ordinal
-            updateRecognizedArrowsDebug(scored, maneuverCandidateOrdinal)
+            updateRecognizedArrowsDebug(displayOrderedScored, maneuverCandidateOrdinal)
 
-            // Build LaneMask from the same arrow list shown in Debug → Extracted Arrow Image.
-            // This keeps the HUD lane payload in sync with the visible left-to-right arrows
-            // instead of re-running a separate lane heuristic that can merge/drop gray arrows.
+            // Build LaneMask from the same arrows shown in Debug → Extracted Arrow Image,
+            // but keep their original visual/extraction order. The maneuver list is sorted by
+            // score, which can interleave white/gray lanes (for example 1100 -> 1010).
             val laneResultBeforeExclusion = detectLaneMask(laneScored, candidates.size, laneScored.size)
             val laneResultAfterExclusion = laneResultBeforeExclusion
             val laneResult = laneResultBeforeExclusion
