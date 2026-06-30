@@ -23,6 +23,11 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class HudService : Service(), LocationListener {
+    private data class NavData(
+        val speedLimit: Int?,
+        val currentSpeed: Int?,
+        val direction: Int?
+    )
     
     companion object {
         private const val TAG = "HudService"
@@ -54,7 +59,15 @@ class HudService : Service(), LocationListener {
             var parsedDistance: String = "",
             var parsedEta: String = "",
             var lastArrowBitmap: android.graphics.Bitmap? = null,
-            var arrowStatus: String = "Waiting..."
+            var recognizedArrowBitmaps: MutableList<android.graphics.Bitmap> = mutableListOf(),
+            var maneuverArrowOrdinal: Int? = null,
+            var arrowStatus: String = "Waiting...",
+            var laneMask: String = "-",
+            var laneCandidates: String = "-",
+            var lanePayload: String = "-",
+            var laneMaskBeforeExclusion: String = "-",
+            var laneMaskAfterExclusion: String = "-",
+            var laneExclusionEnabled: Boolean = true
         )
         
         data class HudDebugData(
@@ -73,7 +86,7 @@ class HudService : Service(), LocationListener {
         val hudDebug = HudDebugData()
     }
     
-    private lateinit var hud: GarminHudLite
+    private lateinit var hud: HudEngine
     private lateinit var locationManager: LocationManager
     private var currentSpeed: Float = 0f
     private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
@@ -138,7 +151,7 @@ class HudService : Service(), LocationListener {
             }
         }
         
-        hud = GarminHudLite(this)
+        hud = HudEngineFactory.create(this)
         hud.onConnectionStateChanged = { connected, deviceName ->
             if (connected) {
                 updateNotification("Подключено: $deviceName")
@@ -176,6 +189,12 @@ class HudService : Service(), LocationListener {
         NavigationNotificationListener.onNavigationUpdate = { navData ->
             currentNavigationData = navData
             isNavigating = navData.isNavigating
+            applyNormalizedNavData(
+                yandexLimit = navData.speedLimit,
+                osmLimit = currentOsmSpeedLimit,
+                currentSpeed = HudState.currentSpeed,
+                direction = HudState.turnIcon
+            )
             
             if (isNavigating) {
                 Log.d(TAG, "Navigation active: ${navData.instruction}, ${navData.distance}")
@@ -242,7 +261,10 @@ class HudService : Service(), LocationListener {
         updateTimer = Timer()
         updateTimer?.scheduleAtFixedRate(object : TimerTask() {
             override fun run() {
-                updateHud()
+                runCatching { updateHud() }
+                    .onFailure { error ->
+                        Log.e(TAG, "updateHud failed: ${error.message}", error)
+                    }
             }
         }, 0, 1000) // Update every second
     }
@@ -258,6 +280,10 @@ class HudService : Service(), LocationListener {
     private var lastOsmUpdateLocation: Location? = null
     private val OSM_UPDATE_DISTANCE_METERS = 500f
     private var distanceToCamera: Int? = null
+    private var pendingSpeedLimit: Int? = null
+    private var pendingSpeedLimitSinceMs: Long = 0L
+    private var speedingState: Boolean = false
+    private var speedingStateSinceMs: Long = 0L
     
     private fun updateHud() {
         if (!hud.isConnected()) return
@@ -285,21 +311,41 @@ class HudService : Service(), LocationListener {
                  hud.setDirection(icon.type, icon.angle)
              } else if (HudState.isNavigating && HudState.turnIcon != null) {
                  // Fallback to legacy
-                 hud.setArrow(HudState.turnIcon!!)
+                 HudState.turnIcon?.let { hud.setArrow(it) }
              } else {
                  hud.setDirection(0, 0) // Clear
              }
+        }
+
+        if (HudState.isNavigating && !HudState.laneAssist.isNullOrBlank()) {
+            HudState.laneAssist?.let { laneAssist ->
+                val (laneArrowMask, laneOutlineMask) = buildLaneMasksFromString(laneAssist)
+                navDebug.laneMask = laneAssist
+                navDebug.lanePayload = "02 ${laneOutlineMask.toHexByte()} ${laneArrowMask.toHexByte()}"
+                if (laneOutlineMask != 0) {
+                    hud.setLanes(laneArrowMask, laneOutlineMask)
+                } else {
+                    navDebug.lanePayload += " (skip: outline=00)"
+                }
+            }
+        } else {
+            navDebug.laneMask = HudState.laneAssist ?: "-"
+            navDebug.lanePayload = "-"
         }
         
         // 2. Main Number (Distance)
         val mainType = profile.slots[HudSlot.MAIN_NUMBER]
         if (mainType == HudDataType.DISTANCE_TO_TURN && HudState.distanceToTurnMeters != null) {
-            // Форматируем расстояние правильно (как в оригинальном приложении)
-            val (value, unit) = DistanceFormatter.formatDistance(HudState.distanceToTurnMeters!!)
-            hud.setDistance(value, unit.hudValue)
+            HudState.distanceToTurnMeters?.let { distance ->
+                // Форматируем расстояние правильно (как в оригинальном приложении)
+                val (value, unit) = DistanceFormatter.formatDistance(distance)
+                hud.setDistance(value, unit.hudValue)
+            } ?: hud.clearDistance()
         } else if (mainType == HudDataType.DISTANCE_TO_CAMERA && HudState.cameraDistance != null) {
-            val (value, unit) = DistanceFormatter.formatDistance(HudState.cameraDistance!!)
-            hud.setDistance(value, unit.hudValue)
+            HudState.cameraDistance?.let { cameraDistance ->
+                val (value, unit) = DistanceFormatter.formatDistance(cameraDistance)
+                hud.setDistance(value, unit.hudValue)
+            } ?: hud.clearDistance()
         } else if (mainType == HudDataType.CURRENT_SPEED) {
             // Если хотим скорость — просто число
             hud.setDistance(HudState.currentSpeed, DistanceUnit.NONE.hudValue)
@@ -340,18 +386,40 @@ class HudService : Service(), LocationListener {
         hudDebug.lastUpdateTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
     }
 
+    private fun buildLaneMasksFromString(value: String): Pair<Int, Int> {
+        var normalized = value.filter { it == '0' || it == '1' || it == ' ' }.take(6)
+        while (normalized.length < 6) {
+            normalized = if (normalized.length and 1 == 1) " $normalized" else "$normalized "
+        }
+
+        var outlineMask = 0
+        var arrowMask = 0
+        for (index in normalized.indices) {
+            val ch = normalized[index]
+            val bit = 1 shl (6 - index)
+            if (ch == '0' || ch == '1') outlineMask = outlineMask or bit
+            if (ch == '1') arrowMask = arrowMask or bit
+        }
+        return arrowMask to outlineMask
+    }
+
+    private fun Int.toHexByte(): String = this.and(0xFF).toString(16).uppercase().padStart(2, '0')
+
     private fun updateOsmData(location: Location) {
         val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
         osmDebug.lastLocation = String.format("%.6f, %.6f", location.latitude, location.longitude)
         osmDebug.lastUpdateTime = timeFormat.format(Date())
-        
+
         osmClient.getSpeedLimit(location.latitude, location.longitude) { limit ->
             currentOsmSpeedLimit = limit
             osmDebug.currentSpeedLimit = limit
-            
-            // Update Universal State
-            HudState.speedLimit = limit
-            checkSpeeding()
+
+            applyNormalizedNavData(
+                yandexLimit = currentNavigationData?.speedLimit,
+                osmLimit = limit,
+                currentSpeed = HudState.currentSpeed,
+                direction = HudState.turnIcon
+            )
         }
         
         osmClient.getCameras(location.latitude, location.longitude, 1000) { cameras ->
@@ -359,17 +427,90 @@ class HudService : Service(), LocationListener {
             osmDebug.camerasFound = cameras.size
         }
     }
-    
+
     private fun checkSpeeding() {
         val limit = HudState.speedLimit
         val speed = HudState.currentSpeed
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val threshold = prefs.getInt("speeding_threshold", 10)
-        
-        if (limit != null) {
-            HudState.isSpeeding = speed >= (limit + threshold)
-        } else {
+
+        if (limit == null) {
+            speedingState = false
+            speedingStateSinceMs = 0L
             HudState.isSpeeding = false
+            return
+        }
+
+        val now = System.currentTimeMillis()
+        val onThreshold = limit + threshold
+        val offThreshold = (limit + threshold - 3).coerceAtLeast(0)
+        val candidateState = if (speedingState) speed >= offThreshold else speed >= onThreshold
+
+        if (candidateState != speedingState) {
+            if (speedingStateSinceMs == 0L) speedingStateSinceMs = now
+            if (now - speedingStateSinceMs >= 2000L) {
+                speedingState = candidateState
+                speedingStateSinceMs = 0L
+            }
+        } else {
+            speedingStateSinceMs = 0L
+        }
+
+        HudState.isSpeeding = speedingState
+    }
+
+    private fun applyNormalizedNavData(
+        yandexLimit: Int?,
+        osmLimit: Int?,
+        currentSpeed: Int?,
+        direction: Int?
+    ) {
+        val normalized = NavData(
+            speedLimit = yandexLimit ?: osmLimit,
+            currentSpeed = currentSpeed,
+            direction = direction
+        )
+        applySpeedLimitWithDebounce(normalized.speedLimit)
+        normalized.currentSpeed?.let { HudState.currentSpeed = it }
+        normalized.direction?.let { HudState.turnIcon = it }
+        checkSpeeding()
+    }
+
+    private fun applySpeedLimitWithDebounce(candidateLimit: Int?) {
+        val currentLimit = HudState.speedLimit
+        val now = System.currentTimeMillis()
+
+        if (candidateLimit == currentLimit) {
+            pendingSpeedLimit = null
+            pendingSpeedLimitSinceMs = 0L
+            return
+        }
+
+        if (candidateLimit == null) {
+            // Keep the last known limit until a new valid value arrives. Yandex notifications
+            // often omit speed limit, and clearing here makes the HUD show 0/none.
+            pendingSpeedLimit = null
+            pendingSpeedLimitSinceMs = 0L
+            return
+        }
+
+        if (currentLimit == null || kotlin.math.abs(candidateLimit - currentLimit) <= 20) {
+            HudState.speedLimit = candidateLimit
+            pendingSpeedLimit = null
+            pendingSpeedLimitSinceMs = 0L
+            return
+        }
+
+        if (pendingSpeedLimit != candidateLimit) {
+            pendingSpeedLimit = candidateLimit
+            pendingSpeedLimitSinceMs = now
+            return
+        }
+
+        if (now - pendingSpeedLimitSinceMs >= 2000L) {
+            HudState.speedLimit = candidateLimit
+            pendingSpeedLimit = null
+            pendingSpeedLimitSinceMs = 0L
         }
     }
     
